@@ -10,6 +10,8 @@
 .top{position:absolute;top:10px;left:10px;display:flex;gap:7px;align-items:flex-start}.tag{background:#10251ddd;border:1px solid #ffffff2b;border-radius:12px;padding:8px 11px;font-size:12px;font-weight:700;box-shadow:0 3px 12px #0004}.stats{position:absolute;right:10px;top:10px;width:132px;background:#10251ddd;border:1px solid #ffffff2b;border-radius:13px;padding:9px 10px;font-size:11px}.meter{height:7px;background:#ffffff30;border-radius:8px;margin:4px 0 7px;overflow:hidden}.fill{height:100%;width:100%;background:#65d88a;border-radius:8px}.fill.energy{background:#6bc9f4}.notice{position:absolute;left:50%;top:78px;transform:translateX(-50%);background:#10251de8;border:1px solid #ffffff30;border-radius:12px;padding:8px 12px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .2s}.notice.show{opacity:1}
 .nav{position:absolute;top:56px;left:10px;display:flex;gap:6px;pointer-events:auto}.nav button{width:42px;height:40px;border:1px solid #ffffff55;border-radius:12px;background:#10251ddd;color:#fff;font-size:18px;box-shadow:0 3px 10px #0005}
 .game-panel{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:#06150edb;pointer-events:auto}.game-card{width:min(94vw,460px);max-height:82vh;overflow:auto;border:1px solid #ffffff35;border-radius:20px;background:linear-gradient(145deg,#1a3c2d,#10231d);padding:16px;box-shadow:0 18px 60px #0009}.game-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.game-head strong{font-size:19px}.game-head button,.game-card button{border:1px solid #ffffff35;border-radius:11px;background:#ffffff16;color:#fff;padding:10px 12px;font-weight:700}.game-head button{font-size:20px;padding:5px 11px}.game-card p{color:#c8ddce;font-size:13px}.game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.game-grid button{min-height:54px;text-align:left}.game-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #ffffff18;font-size:14px}.game-row button{white-space:nowrap}.game-card .primary{background:#4d9b68;color:#071d11;border:0}.game-card .muted{opacity:.5}.game-hint{font-size:12px;color:#a9c8b2;margin:10px 0}
+.hotbar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:5px;pointer-events:auto}.hotbar button{width:48px;height:45px;border:1px solid #ffffff55;border-radius:11px;background:#10251de8;color:white;font-size:17px}.hotbar button.active{outline:2px solid #8ee6a5;background:#285a3e}.hotbar button small{display:block;font-size:8px}
+@media(max-height:520px){.hotbar{bottom:5px}.hotbar button{width:42px;height:38px}.hint{display:none}}
 #stick{position:absolute;left:18px;bottom:22px;width:124px;height:124px;border-radius:50%;border:2px solid #ffffff70;background:#ffffff1c;pointer-events:auto;touch-action:none;box-shadow:0 4px 18px #0003}#knob{position:absolute;width:48px;height:48px;left:36px;top:36px;border-radius:50%;background:#e7f5e9dd;border:2px solid #fff8;box-shadow:0 2px 9px #0005}
 .actions{position:absolute;right:14px;bottom:22px;display:grid;grid-template-columns:repeat(2,68px);gap:8px;pointer-events:auto}.actions button{height:58px;border:1px solid #ffffff55;border-radius:15px;background:#173b2eeF;color:white;font-weight:700;font-size:12px;box-shadow:0 4px 12px #0004;touch-action:manipulation}.actions button:active{transform:scale(.96);background:#286b4a}.actions .main{background:#276b48}.hint{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font-size:10px;color:#fff;text-shadow:0 2px 5px #000;white-space:nowrap}
 .overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(#071b17c9,#071b17ed);pointer-events:auto;padding:20px}.panel{max-width:390px;width:100%;padding:25px 22px;border-radius:22px;background:linear-gradient(145deg,#1c4634,#10281f);border:1px solid #ffffff35;box-shadow:0 18px 60px #0008;text-align:center}.panel h1{font-size:30px;margin:0 0 8px;letter-spacing:1px}.panel p{font-size:14px;line-height:1.55;color:#d3e8d9}.panel button{border:0;border-radius:14px;background:#5ab978;color:#082115;font-weight:900;font-size:16px;padding:14px 25px;margin-top:8px}.hidden{display:none!important}
@@ -20,12 +22,13 @@
 <canvas id="game"></canvas>
 <div id="ui">
  <div class="top"><div class="tag">🌴 DINO ISLAND</div><div class="tag" id="bag">🪵 0　🪨 0　🌿 0</div></div>
- <div class="nav"><button id="inventoryBtn" aria-label="Инвентарь">🎒</button><button id="buildBtn" aria-label="Строительство">🏗️</button><button id="skillsBtn" aria-label="Навыки">⭐</button><button id="mapBtn" aria-label="Карта">🗺️</button></div>
+ <div class="nav"><button id="inventoryBtn" aria-label="Инвентарь">🎒</button><button id="buildBtn" aria-label="Строительство">🏗️</button><button id="skillsBtn" aria-label="Навыки">⭐</button><button id="mapBtn" aria-label="Карта">🗺️</button><button id="journalBtn" aria-label="Задания">📜</button></div>
  <div class="stats">❤️ ЗДОРОВЬЕ<div class="meter"><div class="fill" id="health"></div></div>⚡ ВЫНОСЛИВОСТЬ<div class="meter"><div class="fill energy" id="stamina"></div></div>🍖 ГОЛОД<div class="meter"><div class="fill" id="hunger"></div></div>💧 ЖАЖДА<div class="meter"><div class="fill" id="thirst"></div></div><div id="levelLabel">УРОВЕНЬ 1 · 0 XP</div></div>
  <div class="notice" id="notice"></div>
  <div class="game-panel hidden" id="gamePanel"><div class="game-card"><div class="game-head"><strong id="panelTitle">Инвентарь</strong><button id="closePanel" aria-label="Закрыть">×</button></div><div id="panelBody"></div></div></div>
  <div id="stick"><div id="knob"></div></div>
  <div class="actions"><button id="collect">✋<br>СОБРАТЬ</button><button id="run">⚡<br>БЕГ</button><button id="hit" class="main">🪓<br>УДАР</button><button id="center">🧭<br>ЦЕЛЬ</button></div>
+ <div class="hotbar" id="hotbar"><button data-slot="axe">🪓<small>ТОПОР</small></button><button data-slot="spear">🔱<small>КОПЬЁ</small></button><button data-slot="meat">🍖<small>МЯСО</small></button><button data-slot="ration">🥫<small>ПАЁК</small></button></div>
  <div class="hint">Джойстик — движение · свайп по правой части экрана — камера</div>
  <div class="overlay" id="menu"><div class="panel"><h1>🦖 DINO ISLAND</h1><p>Исследуй зелёный остров, собирай ресурсы и остерегайся хищника. Управление создано для телефона: джойстик слева, камера справа, действия справа внизу.</p><button id="start">НАЧАТЬ ИГРУ</button></div></div>
 </div>
@@ -169,11 +172,12 @@ const dinos=[
  makeDino(-42,-18,'raptor'),makeDino(48,32,'herb'),makeDino(-62,52,'stego'),
  makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd')
 ];
-const savedState=loadFromStorage(localStorage);
+const storage=(()=>{try{return window.localStorage}catch{return{getItem:()=>null,setItem:()=>{throw new Error('Хранилище недоступно')}}}})();
+const savedState=loadFromStorage(storage);
 const inventory=createInventory(savedState.ok?savedState.data.inventory:{wood:0,stone:0,fiber:0},40,30);
 const progression=createProgression(savedState.ok?savedState.data.progression:{});
 let hunger=savedState.ok?(savedState.data.player.hunger??100):100,thirst=savedState.ok?(savedState.data.player.thirst??100):100;
-let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=savedState.ok?(savedState.data.player.hp??100):100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false,structures=savedState.ok?[...savedState.data.structures]:[],buildMode=null,ghost=null,lastSave=0;
+let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=savedState.ok?(savedState.data.player.hp??100):100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false,structures=savedState.ok?[...savedState.data.structures]:[],buildMode=null,ghost=null,lastSave=0,equipped='',gameStats=savedState.ok?(savedState.data.stats||{gathered:0,crafted:0,built:0,kills:0}):{gathered:0,crafted:0,built:0,kills:0};
 const dinoBlockers=dinos.map(d=>({type:'circle',x:d.mesh.position.x,z:d.mesh.position.z,radius:d.hostile?1.15:.85,creature:d})),collisionBlockers=blockers.concat(dinoBlockers);
 function syncInventory(){woodCount=inventory.items.wood||0;stoneCount=inventory.items.stone||0;fiberCount=inventory.items.fiber||0}
 function say(t){$('notice').textContent=t;$('notice').classList.add('show');lastNotice=2}
@@ -194,12 +198,12 @@ const BUILD_PIECES={
  doorway:{name:'Дверной проём',cost:{wood:6},size:[3.2,2.6,.22],color:0x805a39,maxSlope:.4},
  roof:{name:'Крыша',cost:{wood:5,fiber:2},size:[3.5,.22,3.5],color:0x77543b,maxSlope:.3},
  fence:{name:'Забор',cost:{wood:2},size:[2.4,1.1,.16],color:0x9a7048,maxSlope:.5},
- campfire:{name:'Костёр',cost:{wood:4,stone:3},size:[1.2,.35,1.2],color:0x66645b,maxSlope:.6},
+ campfire:{name:'Костёр',cost:{'campfire-kit':1},size:[1.2,.35,1.2],color:0x66645b,maxSlope:.6},
  chest:{name:'Сундук',cost:{wood:6},size:[1,.75,.8],color:0x765033,maxSlope:.5},
- workbench:{name:'Верстак',cost:{wood:8,fiber:4},size:[1.7,1,.85],color:0x9b754c,maxSlope:.5}
+ workbench:{name:'Верстак',cost:{'workbench-kit':1},size:[1.7,1,.85],color:0x9b754c,maxSlope:.5}
 };
 function saveGame(quiet=false){
- const ok=saveToStorage(localStorage,{player:{x:player.position.x,z:player.position.z,hp,hunger,thirst},inventory:inventory.items,structures:structures.map(s=>({id:s.id,pieceId:s.pieceId,x:s.x,z:s.z,y:s.y,rotation:s.rotation})),seed:world.seed,progression:{xp:progression.xp,level:progression.level,skillPoints:progression.skillPoints,skills:progression.skills}});
+ const ok=saveToStorage(storage,{player:{x:player.position.x,z:player.position.z,hp,hunger,thirst},inventory:inventory.items,structures:structures.map(s=>({id:s.id,pieceId:s.pieceId,x:s.x,z:s.z,y:s.y,rotation:s.rotation})),stats:gameStats,seed:world.seed,progression:{xp:progression.xp,level:progression.level,skillPoints:progression.skillPoints,skills:progression.skills}});
  if(!quiet)say(ok?'Мир сохранён':'Не удалось сохранить мир');return ok;
 }
 function spawnStructure(data){
@@ -220,7 +224,7 @@ function placeBuild(){
  const result=validatePlacement(spec,transform,placementContext(x,z,spec));
  if(!result.valid){say(result.reason);return}
  for(const [id,count] of Object.entries(spec.cost))removeItem(inventory,id,Math.ceil(count*progression.modifiers.buildCost));
- const data=createStructure(buildMode,transform);structures.push(data);spawnStructure(data);addExperience(progression,12);
+ const data=createStructure(buildMode,transform);structures.push(data);spawnStructure(data);addExperience(progression,12);gameStats.built++;
  if(ghost){scene.remove(ghost);ghost=null}buildMode=null;syncInventory();hud();saveGame();say(spec.name+' построен');
 }
 for(const data of structures)spawnStructure(data);
@@ -239,28 +243,29 @@ function openPanel(kind){clearInput();
  }else if(kind==='skills'){
   const skills=[['survival','Выживание','Больше здоровья и выносливости'],['gathering','Собиратель','Больше ресурсов и прочность инструментов'],['combat','Боец','Урон и сопротивление'],['builder','Строитель','Дешевле и прочнее постройки']];
   panelBody.innerHTML='<p>Уровень '+progression.level+' · '+Math.floor(progression.xp)+' XP · очков навыков: '+progression.skillPoints+'</p>'+skills.map(([id,name,desc])=>'<div class="game-row"><span><b>'+name+'</b><br><small>'+desc+' · уровень '+(progression.skills[id]||0)+'/5</small></span><button data-action="skill" data-id="'+id+'">Улучшить</button></div>').join('');
- }else if(kind==='map'){
+ }else if(kind==='journal'){panelBody.innerHTML='<p>Задания острова. Прогресс сохраняется.</p>'+[['gathered','Собрать 10 ресурсов',10],['crafted','Создать предмет',1],['built','Построить сооружение',1],['kills','Победить динозавра',1]].map(([id,name,target])=>'<div class="game-row"><span>'+name+'</span><b>'+(gameStats[id]||0)+' / '+target+'</b></div>').join('')+'<p>Награды за первые шаги: опыт и очки навыков.</p>';}else if(kind==='map'){
   const biome=world.sampleBiome(player.position.x,player.position.z);
   panelBody.innerHTML='<p>Ты находишься в биоме: <b>'+biome+'</b></p><p>Координаты: X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z)+'</p><p>Остров: радиус '+world.radius+' м. Зоны: пляж, луг, лес, болото, скалы и горы.</p><p>Ориентиры и секретные места будут открываться по мере исследования.</p>';
  }
 }
 function closePanel(){panel.classList.add('hidden')}
-$('inventoryBtn').onclick=()=>openPanel('inventory');$('buildBtn').onclick=()=>openPanel('build');$('skillsBtn').onclick=()=>openPanel('skills');$('mapBtn').onclick=()=>openPanel('map');$('closePanel').onclick=closePanel;
+$('inventoryBtn').onclick=()=>openPanel('inventory');$('buildBtn').onclick=()=>openPanel('build');$('skillsBtn').onclick=()=>openPanel('skills');$('mapBtn').onclick=()=>openPanel('map');$('journalBtn').onclick=()=>openPanel('journal');$('closePanel').onclick=closePanel;
+$('hotbar').addEventListener('click',event=>{const button=event.target.closest('button[data-slot]');if(!button)return;const id=button.dataset.slot;if(id==='meat'||id==='ration'){if(removeItem(inventory,id,1)){hunger=Math.min(100,hunger+(id==='meat'?32:45));say(id==='meat'?'Ты съел мясо':'Ты съел паёк');hud();saveGame(true)}else say('Предмета нет в инвентаре')}else if(inventory.items[id]){equipped=equipped===id?'':id;say(equipped?'Выбрано: '+(id==='axe'?'топор':'копьё'):'Предмет убран')}else say('Сначала создай этот предмет');for(const b of $('hotbar').querySelectorAll('button'))b.classList.toggle('active',b.dataset.slot===equipped)});
 panelBody.addEventListener('click',event=>{
  const button=event.target.closest('button[data-action]');if(!button)return;const action=button.dataset.action,id=button.dataset.id;
- if(action==='craft'){const recipe=RECIPES.find(r=>r.id===id),result=craftItem(inventory,recipe);if(result.ok){addExperience(progression,10);say(result.reason);syncInventory();saveGame()}else say(result.reason);openPanel('inventory')}
+ if(action==='craft'){const recipe=RECIPES.find(r=>r.id===id),result=craftItem(inventory,recipe);if(result.ok){addExperience(progression,10);gameStats.crafted++;say(result.reason);syncInventory();saveGame()}else say(result.reason);openPanel('inventory')}
  else if(action==='select-build'){buildMode=id;if(ghost)scene.remove(ghost);const spec=BUILD_PIECES[id];ghost=new THREE.Mesh(new THREE.BoxGeometry(...spec.size),new THREE.MeshBasicMaterial({color:0x8de6a6,transparent:true,opacity:.35,wireframe:true}));scene.add(ghost);closePanel();say('Режим строительства: '+spec.name+' · открой меню строительства, чтобы поставить')}
  else if(action==='place'){placeBuild();openPanel('build')}
  else if(action==='cancel-build'){buildMode=null;if(ghost){scene.remove(ghost);ghost=null}openPanel('build')}
  else if(action==='skill'){if(buySkill(progression,id)){hud();saveGame();say('Навык улучшен')}else say('Нет очков или достигнут максимум');openPanel('skills')}
- else if(action==='eat'){if(removeItem(inventory,'meat',1)){hunger=Math.min(100,hunger+32);hud();saveGame();say('Ты поел')}else say('Нет мяса');openPanel('inventory')}
+ else if(action==='eat'){const food=removeItem(inventory,'meat',1)?'meat':removeItem(inventory,'ration',1)?'ration':'';if(food){hunger=Math.min(100,hunger+(food==='meat'?32:45));hud();saveGame();say('Ты поел')}else say('Нет еды');openPanel('inventory')}
  else if(action==='drink'){if(Math.hypot(player.position.x-26,player.position.z+30)<11){thirst=100;hud();saveGame();say('Ты напился из озера')}else say('Найди озеро в болотистой части острова');openPanel('inventory')}
 });
 $('gamePanel').addEventListener('pointerdown',event=>event.stopPropagation());
 if(savedState.ok){player.position.set(savedState.data.player.x||0,world.sampleHeight(savedState.data.player.x||0,savedState.data.player.z||0),savedState.data.player.z||0);hud()}
 
-$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,Math.ceil((r.kind==='stone'?1:2)*progression.modifiers.gatherYield));addExperience(progression,4);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
-$('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp-=inventory.items.spear?Math.ceil(progression.modifiers.meleeDamage*2):Math.ceil(progression.modifiers.meleeDamage);d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
+$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,Math.ceil((r.kind==='stone'?1:2)*(equipped==='axe'&&inventory.items.axe?progression.modifiers.gatherYield*1.5:progression.modifiers.gatherYield)));addExperience(progression,4);gameStats.gathered+=(r.kind==='stone'?1:2);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
+$('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp-=equipped==='spear'&&inventory.items.spear?Math.ceil(progression.modifiers.meleeDamage*2):Math.ceil(progression.modifiers.meleeDamage);d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);gameStats.kills++;hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
 startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
