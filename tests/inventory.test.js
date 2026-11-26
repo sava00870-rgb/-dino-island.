@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createInventory, addItem, removeItem, craftItem } from '../src/inventory.js';
 
 test('inventory respects stack and slot limits',()=>{
- const inv=createInventory({},2,10);
+ const inv=createInventory({},3,10);
  assert.deepEqual(addItem(inv,'wood',15),{added:15,remaining:0});
  assert.deepEqual(addItem(inv,'stone',10),{added:10,remaining:0});
  assert.deepEqual(addItem(inv,'fiber',1),{added:0,remaining:1});
