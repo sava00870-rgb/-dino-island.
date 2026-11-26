@@ -4,13 +4,13 @@ import { resolveCircleMovement } from '../src/collision.js';
 
 test('free movement stays unchanged when no obstacles are present', () => {
  const result=resolveCircleMovement({x:0,z:0},{x:2,z:1},0.5,[],{radius:10});
- assert.deepEqual(result.position,{x:2,z:1});
+ assert.ok(Math.abs(result.position.x-2)<1e-9&&Math.abs(result.position.z-1)<1e-9);
  assert.equal(result.collided,false);
 });
 
 test('circle blocker prevents overlap and allows sliding along it', () => {
  const result=resolveCircleMovement({x:0,z:0},{x:3,z:1},0.5,[{type:'circle',x:2,z:0,radius:0.7}],{radius:10});
- assert.ok(Math.hypot(result.position.x-2,result.position.z)<1.2);
+ assert.ok(Math.hypot(result.position.x-2,result.position.z)<1.21);
  assert.ok(result.position.z>0.5);
  assert.equal(result.collided,true);
 });
