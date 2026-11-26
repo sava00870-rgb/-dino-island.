@@ -36,8 +36,13 @@ test('resource records restore the right mesh instance regardless of group index
   const treeMesh = makeMesh('trees');
   const stoneMesh = makeMesh('stones');
   const bushMesh = makeMesh('bushes');
+  const crownMesh = makeMesh('crowns');
+  const foliageMesh = makeMesh('foliage');
   const records = [
-    createResourceRecord({ mesh: treeMesh, index: 0, original: 'tree-transform' }),
+    createResourceRecord({ mesh: treeMesh, index: 0, original: 'tree-transform', linked: [
+      { mesh: crownMesh, index: 0, original: 'crown-transform' },
+      { mesh: foliageMesh, index: 0, original: 'foliage-transform' }
+    ] }),
     createResourceRecord({ mesh: treeMesh, index: 1, original: 'tree2-transform' }),
     createResourceRecord({ mesh: stoneMesh, index: 0, original: 'stone-transform' }),
     createResourceRecord({ mesh: bushMesh, index: 0, original: 'bush-transform' })
@@ -46,7 +51,8 @@ test('resource records restore the right mesh instance regardless of group index
   writes.length = 0;
   resetResourceRecords(records);
   assert.deepEqual(writes, [
-    ['trees', 0, 'tree-transform'], ['trees', 1, 'tree2-transform'],
+    ['trees', 0, 'tree-transform'], ['crowns', 0, 'crown-transform'],
+    ['foliage', 0, 'foliage-transform'], ['trees', 1, 'tree2-transform'],
     ['stones', 0, 'stone-transform'], ['bushes', 0, 'bush-transform']
   ]);
 });
