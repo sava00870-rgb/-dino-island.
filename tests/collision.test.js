@@ -29,6 +29,6 @@ test('island boundary prevents leaving land circle', () => {
 
 test('diagonal movement cannot tunnel through a thin blocker', () => {
  const result=resolveCircleMovement({x:0,z:0},{x:4,z:4},0.4,[{type:'aabb',minX:1.5,minZ:1.5,maxX:1.7,maxZ:1.7}],{radius:20});
- assert.ok(!(result.position.x>1.11 && result.position.z>1.11));
+ assert.ok(result.position.x>2.1&&result.position.z>2.1,'movement should slide around the expanded obstacle instead of stopping or tunneling through it');
  assert.equal(result.collided,true);
 });
