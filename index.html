@@ -122,7 +122,7 @@ function buildTerrain(){
  const mesh=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true}));scene.add(mesh);return mesh;
 }
 const terrain=buildTerrain();
-const lake=new THREE.Mesh(new THREE.CircleGeometry(8,32),water);lake.rotation.x=-Math.PI/2;lake.position.set(26,world.sampleHeight(26,-30)+.08,-30);scene.add(lake);
+const lake=new THREE.Mesh(new THREE.CircleGeometry(8,32),water);lake.rotation.x=-Math.PI/2;lake.position.set(-26,world.sampleHeight(-26,-30)+.08,-30);scene.add(lake);
 function addLandmarks(){
  const stone=mat(0x777d78),ruin=mat(0x9a927b),darkCave=mat(0x18221e),waterfallMat=new THREE.MeshLambertMaterial({color:0x7bc5df,transparent:true,opacity:.72});
  const caveX=-42,caveZ=34,caveY=world.sampleHeight(caveX,caveZ);
@@ -281,12 +281,12 @@ panelBody.addEventListener('click',event=>{
  else if(action==='cancel-build'){buildMode=null;if(ghost){scene.remove(ghost);ghost=null}openPanel('build')}
  else if(action==='skill'){if(buySkill(progression,id)){hud();saveGame();say('Навык улучшен')}else say('Нет очков или достигнут максимум');openPanel('skills')}
  else if(action==='eat'){const food=removeItem(inventory,'meat',1)?'meat':removeItem(inventory,'ration',1)?'ration':'';if(food){hunger=Math.min(100,hunger+(food==='meat'?32:45));hud();saveGame();say('Ты поел')}else say('Нет еды');openPanel('inventory')}
- else if(action==='drink'){if(Math.hypot(player.position.x-26,player.position.z+30)<11){thirst=100;hud();saveGame();say('Ты напился из озера')}else say('Найди озеро в болотистой части острова');openPanel('inventory')}
+ else if(action==='drink'){if(Math.hypot(player.position.x+26,player.position.z+30)<11){thirst=100;hud();saveGame();say('Ты напился из озера')}else say('Найди озеро в болотистой части острова');openPanel('inventory')}
 });
 $('gamePanel').addEventListener('pointerdown',event=>event.stopPropagation());
 if(savedState.ok){player.position.set(savedState.data.player.x||0,world.sampleHeight(savedState.data.player.x||0,savedState.data.player.z||0),savedState.data.player.z||0);hud()}
 
-$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,Math.ceil((r.kind==='stone'?1:2)*(equipped==='axe'&&inventory.items.axe?progression.modifiers.gatherYield*1.5:progression.modifiers.gatherYield)));addExperience(progression,4);gameStats.gathered+=(r.kind==='stone'?1:2);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
+$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber',amount=Math.ceil((r.kind==='stone'?1:2)*(equipped==='axe'&&inventory.items.axe?progression.modifiers.gatherYield*1.5:progression.modifiers.gatherYield)),added=addItem(inventory,item,amount);if(!added.added){say('Инвентарь заполнен');return}hideInstance(r);addExperience(progression,4);gameStats.gathered+=added.added;hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
 $('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp-=equipped==='spear'&&inventory.items.spear?Math.ceil(progression.modifiers.meleeDamage*2):Math.ceil(progression.modifiers.meleeDamage);d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);gameStats.kills++;hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
@@ -336,7 +336,7 @@ function drawMinimap(dt){
  ctx.clearRect(0,0,w,h);ctx.fillStyle='#246c7b';ctx.fillRect(0,0,w,h);
  ctx.beginPath();ctx.arc(cx,cy,49,0,Math.PI*2);ctx.fillStyle='#6e9b50';ctx.fill();
  for(const p of trees){const x=cx+p[0]*scale,y=cy+p[1]*scale;ctx.fillStyle='#285b36';ctx.fillRect(x-1,y-1,2,2)}
- ctx.fillStyle='#4aa9c8';ctx.beginPath();ctx.arc(cx+26*scale,cy-30*scale,4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#4aa9c8';ctx.beginPath();ctx.arc(cx-26*scale,cy-30*scale,4,0,Math.PI*2);ctx.fill();
  for(const d of dinos){if(d.dead)continue;ctx.fillStyle=d.hostile?'#f05b49':'#f3d66c';ctx.beginPath();ctx.arc(cx+d.mesh.position.x*scale,cy+d.mesh.position.z*scale,2.4,0,Math.PI*2);ctx.fill()}
  for(const s of structures){ctx.fillStyle='#d6c6a2';ctx.fillRect(cx+s.x*scale-1,cy+s.z*scale-1,3,3)}
  ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(cx+player.position.x*scale,cy+player.position.z*scale,3.5,0,Math.PI*2);ctx.fill();
