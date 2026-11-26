@@ -53,6 +53,11 @@
 <script type="module">
 import { movementVector, createResourceRecord, resetResourceRecords } from './src/game-logic.js';
 import { resolveCircleMovement } from './src/collision.js';
+import { createWorld } from './src/world-generation.js';
+import { createInventory, addItem, removeItem, craftItem } from './src/inventory.js';
+import { loadFromStorage, saveToStorage } from './src/save-system.js';
+import { createProgression, addExperience, buySkill } from './src/progression.js';
+import { validatePlacement, createStructure } from './src/building.js';
 import { createBootController } from './src/boot-controller.js';
 (()=>{
 'use strict';
