@@ -15,3 +15,12 @@ test('inline browser scripts in index.html are valid JavaScript', () => {
     assert.equal(result.status, 0, result.stderr || result.stdout || 'inline script syntax check failed');
   }
 });
+
+test('all local ES module imports in index.html exist', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const imports = [...html.matchAll(/from\s+['"]\.\/(src\/[^'"]+)['"]/g)].map(match => match[1]);
+  assert.ok(imports.length >= 5, 'expected gameplay module imports');
+  for (const path of imports) {
+    assert.ok(readFileSync(new URL('../' + path, import.meta.url)), 'missing module: ' + path);
+  }
+});
