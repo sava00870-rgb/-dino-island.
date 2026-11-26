@@ -311,7 +311,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput(
 function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
 if(playing&&$('gamePanel').classList.contains('hidden')){hunger=Math.max(0,hunger-.035*dt);thirst=Math.max(0,thirst-.055*dt);if(hunger<=0||thirst<=0)hp=Math.max(0,hp-1.8*dt);let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
 const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
-for(let i=0;i<dinos.length;i++){dinoBlockers[i].x=dinos[i].mesh.position.x;dinoBlockers[i].z=dinos[i].mesh.position.z;dinoBlockers[i].radius=dinos[i].dead?0:(dinos[i].hostile?1.15:.85)}
+for(let i=0;i<dinos.length;i++){dinoBlockers[i].x=dinos[i].mesh.position.x;dinoBlockers[i].z=dinos[i].mesh.position.z;dinoBlockers[i].type=dinos[i].dead?'none':'circle';dinoBlockers[i].radius=dinos[i].hostile?1.15:.85}
 const oldX=player.position.x,oldZ=player.position.z;
 const moved=resolveCircleMovement({x:oldX,z:oldZ},{x:dx,z:dz},.55,collisionBlockers,{radius:world.innerRadius});
 player.position.x=moved.position.x;player.position.z=moved.position.z;
