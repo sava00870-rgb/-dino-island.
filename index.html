@@ -97,8 +97,8 @@ function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
 function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
-if(playing){let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.08,fast=running&&energy>1&&moving,speed=fast?7.2:4.1;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
-const dx=(Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed*dt,dz=(Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed*dt;
+if(playing){let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
+const forwardX=Math.sin(yaw),forwardZ=Math.cos(yaw),rightX=-Math.cos(yaw),rightZ=Math.sin(yaw);const dx=(forwardX*forward+rightX*side)*speed*dt,dz=(forwardZ*forward+rightZ*side)*speed*dt;
 player.position.x=THREE.MathUtils.clamp(player.position.x+dx,-49,49);player.position.z=THREE.MathUtils.clamp(player.position.z+dz,-49,49);
 if(moving){const targetYaw=Math.atan2(dx,dz);let diff=Math.atan2(Math.sin(targetYaw-player.rotation.y),Math.cos(targetYaw-player.rotation.y));player.rotation.y+=diff*Math.min(1,dt*10)}
 const walk=Math.sin(t*(fast?13:8));legs[0].rotation.x=walk*(moving?.62:0);legs[1].rotation.x=-walk*(moving?.62:0);arms[0].rotation.x=-walk*(moving?.35:0);arms[1].rotation.x=walk*(moving?.35:0);torso.position.y=1.05+(moving?Math.abs(walk)*.035:0);
