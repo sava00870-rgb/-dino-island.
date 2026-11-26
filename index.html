@@ -25,7 +25,27 @@
  <div class="hint">Джойстик — движение · свайп по правой части экрана — камера</div>
  <div class="overlay" id="menu"><div class="panel"><h1>🦖 DINO ISLAND</h1><p>Исследуй зелёный остров, собирай ресурсы и остерегайся хищника. Управление создано для телефона: джойстик слева, камера справа, действия справа внизу.</p><button id="start">НАЧАТЬ ИГРУ</button></div></div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+ const button=document.getElementById('start');
+ const heading=document.querySelector('#menu h1');
+ const paragraph=document.querySelector('#menu p');
+ button.disabled=true;button.textContent='ЗАГРУЗКА...';
+ let settled=false;
+ const fail=message=>{
+  if(settled)return;
+  settled=true;heading.textContent='НЕ УДАЛОСЬ ЗАПУСТИТЬ';
+  paragraph.textContent=message||'Не удалось загрузить графику. Проверь интернет и попробуй снова.';
+  button.disabled=false;button.textContent='ПОВТОРИТЬ';button.onclick=()=>location.reload();
+ };
+ const timer=setTimeout(()=>fail('Загрузка графики занимает слишком много времени. Проверь интернет и попробуй снова.'),12000);
+ window.__dinoIslandBootFallback={
+  ready(){settled=true;clearTimeout(timer)},
+  fail(message){clearTimeout(timer);fail(message)}
+ };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.160.0/build/three.min.js'"></script>
 <script type="module">
 import { movementVector, createResourceRecord, resetResourceRecords } from './src/game-logic.js';
 import { createBootController } from './src/boot-controller.js';
@@ -54,7 +74,16 @@ $('start').onclick=()=>{
 try{
 const renderer=boot.initialize();
 if(!renderer)throw boot.error||new Error('Не удалось создать графику.');
+if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.ready();
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+canvas.addEventListener('webglcontextlost',event=>{
+ event.preventDefault();playing=false;
+ const error=new Error('Потерян графический контекст. Нажми «Повторить», чтобы перезапустить игру.');
+ boot.fail(error);$('menu').classList.remove('hidden');
+ $('menu').querySelector('h1').textContent='ГРАФИКА ПРИОСТАНОВЛЕНА';
+ $('menu').querySelector('p').textContent=error.message;
+});
+canvas.addEventListener('webglcontextrestored',()=>location.reload());
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,48,115);
 const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,180);
 scene.add(new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1));
@@ -127,6 +156,9 @@ canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){yaw+=(e.clien
 function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
+function clearInput(){running=false;keys={};resetJoy()}
+addEventListener('blur',clearInput);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput()});
 function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
 if(playing){let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
 const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
@@ -142,6 +174,7 @@ renderer.render(scene,camera)}
 tick();
 }catch(error){
  boot.fail(error);
+ if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.fail(error&&error.message);
  $('menu').classList.remove('hidden');
  $('menu').querySelector('h1').textContent='НЕ УДАЛОСЬ ЗАПУСТИТЬ';
  $('menu').querySelector('p').textContent=(error&&error.message?error.message:'Ошибка загрузки игры')+' Если проблема повторяется, обнови страницу.';
