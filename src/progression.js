@@ -5,7 +5,8 @@ const SKILLS={
  builder:{buildCost:-.1,structureDurability:.2}
 };
 export function createProgression(data={}){
- return {xp:Math.max(0,data.xp||0),level:Math.max(1,data.level||1),skillPoints:Math.max(0,data.skillPoints||0),skills:{...(data.skills||{})},modifiers:{maxHealth:100,maxStamina:100,gatherYield:1,toolDurability:1,meleeDamage:1,damageReduction:0,buildCost:1,structureDurability:1}};
+ const state={xp:Math.max(0,data.xp||0),level:Math.max(1,data.level||1),skillPoints:Math.max(0,data.skillPoints||0),skills:{...(data.skills||{})},modifiers:{maxHealth:100,maxStamina:100,gatherYield:1,toolDurability:1,meleeDamage:1,damageReduction:0,buildCost:1,structureDurability:1}};
+ applySkills(state);return state;
 }
 function threshold(level){return level*100}
 function applySkills(p){
