@@ -25,12 +25,64 @@
  <div class="hint">Джойстик — движение · свайп по правой части экрана — камера</div>
  <div class="overlay" id="menu"><div class="panel"><h1>🦖 DINO ISLAND</h1><p>Исследуй зелёный остров, собирай ресурсы и остерегайся хищника. Управление создано для телефона: джойстик слева, камера справа, действия справа внизу.</p><button id="start">НАЧАТЬ ИГРУ</button></div></div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-(()=>{'use strict';
+(()=>{
+ const button=document.getElementById('start');
+ const heading=document.querySelector('#menu h1');
+ const paragraph=document.querySelector('#menu p');
+ button.disabled=true;button.textContent='ЗАГРУЗКА...';
+ let settled=false;
+ const fail=message=>{
+  if(settled)return;
+  settled=true;heading.textContent='НЕ УДАЛОСЬ ЗАПУСТИТЬ';
+  paragraph.textContent=message||'Не удалось загрузить графику. Проверь интернет и попробуй снова.';
+  button.disabled=false;button.textContent='ПОВТОРИТЬ';button.onclick=()=>location.reload();
+ };
+ const timer=setTimeout(()=>fail('Загрузка графики занимает слишком много времени. Проверь интернет и попробуй снова.'),12000);
+ window.__dinoIslandBootFallback={
+  ready(){settled=true;clearTimeout(timer)},
+  fail(message){clearTimeout(timer);fail(message)}
+ };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.160.0/build/three.min.js'"></script>
+<script type="module">
+import { movementVector, createResourceRecord, resetResourceRecords } from './src/game-logic.js';
+import { createBootController } from './src/boot-controller.js';
+(()=>{
+'use strict';
 const $=id=>document.getElementById(id),canvas=$('game');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+const boot=createBootController({
+ initialize:()=>{
+  if(!window.THREE) throw new Error('Не удалось загрузить Three.js. Проверь интернет и нажми «Повторить».');
+  return new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+ },
+ onState:state=>{
+  const button=$('start');
+  if(state==='loading'){button.textContent='ЗАГРУЗКА...';button.disabled=true}
+  else if(state==='ready'){button.textContent='НАЧАТЬ ИГРУ';button.disabled=false}
+  else if(state==='error'){button.textContent='ПОВТОРИТЬ';button.disabled=false}
+  else if(state==='playing'){button.disabled=true}
+ }
+});
+let startGameAction=null;
+$('start').onclick=()=>{
+ if(boot.state==='error'){location.reload();return}
+ if(!boot.start())return;
+ if(startGameAction)startGameAction();
+};
+try{
+const renderer=boot.initialize();
+if(!renderer)throw boot.error||new Error('Не удалось создать графику.');
+if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.ready();
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+canvas.addEventListener('webglcontextlost',event=>{
+ event.preventDefault();playing=false;
+ const error=new Error('Потерян графический контекст. Нажми «Повторить», чтобы перезапустить игру.');
+ boot.fail(error);$('menu').classList.remove('hidden');
+ $('menu').querySelector('h1').textContent='ГРАФИКА ПРИОСТАНОВЛЕНА';
+ $('menu').querySelector('p').textContent=error.message;
+});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,48,115);
 const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,180);
 scene.add(new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1));
@@ -42,7 +94,7 @@ const island=new THREE.Mesh(new THREE.CircleGeometry(56,64),sand);island.rotatio
 const land=new THREE.Mesh(new THREE.CircleGeometry(51,64),green);land.rotation.x=-Math.PI/2;land.position.y=-.12;scene.add(land);
 const rand=(a,b)=>a+Math.random()*(b-a),dummy=new THREE.Object3D(),resources=[];
 function point(){let a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*46;return [Math.cos(a)*r,Math.sin(a)*r]}
-function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],p[2]||0,p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push({x:p[0],z:p[1],kind,mesh,index:i,used:false,original:dummy.matrix.clone()})});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
+function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],p[2]||0,p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
 const trees=Array.from({length:66},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
 const trunks=addInstances(new THREE.CylinderGeometry(.18,.27,2.5,6),wood,trees.map(p=>[p[0],p[1],1.15,p[3],p[4]]),'wood');
 const crowns=addInstances(new THREE.ConeGeometry(1.35,3.2,7),leaf1,trees.map(p=>[p[0],p[1],3,p[3],p[4]]),null);
@@ -50,7 +102,13 @@ const rocks=Array.from({length:34},()=>{let p=point();return[p[0],p[1],.38,rand(
 const rockMesh=addInstances(new THREE.DodecahedronGeometry(.65,0),rockMat,rocks,'stone');
 const bushes=Array.from({length:36},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
 const bushMesh=addInstances(new THREE.IcosahedronGeometry(.55,0),bushMat,bushes,'fiber');
-const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{r.extraMesh=crowns;r.extraFoliage=foliage});
+const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{
+ const p=trees[r.index];
+ dummy.position.set(p[0],3,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]);dummy.updateMatrix();
+ const crownOriginal=dummy.matrix.clone();
+ dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();
+ r.linked=[{mesh:crowns,index:r.index,original:crownOriginal},{mesh:foliage,index:r.index,original:dummy.matrix.clone()}];
+});
 const player=new THREE.Group();scene.add(player);
 const shirt=mat(0x3b83a5),pants=mat(0x34404b),skin=mat(0xc99370),dark=mat(0x202b29);
 function limb(parent,material,length,radius,x,y,z){const pivot=new THREE.Group();pivot.position.set(x,y,z);const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length*.48,2,5),material);mesh.position.y=-length*.42;pivot.add(mesh);parent.add(pivot);return pivot}
@@ -77,13 +135,14 @@ let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=100,energy=100,wo
 function say(t){$('notice').textContent=t;$('notice').classList.add('show');lastNotice=2}
 function hud(){$('health').style.width=hp+'%';$('stamina').style.width=energy+'%';$('bag').textContent='🪵 '+woodCount+'　🪨 '+stoneCount+'　🌿 '+fiberCount}
 function nearest(){let found=null,best=3.4;for(const r of resources){if(r.used)continue;let d=Math.hypot(r.x-player.position.x,r.z-player.position.z);if(d<best){best=d;found=r}}return found}
-function hideInstance(r){r.used=true;dummy.position.set(0,-1000,0);dummy.scale.setScalar(0);dummy.updateMatrix();r.mesh.setMatrixAt(r.index,dummy.matrix);r.mesh.instanceMatrix.needsUpdate=true;if(r.extraMesh){r.extraMesh.setMatrixAt(r.index,dummy.matrix);r.extraMesh.instanceMatrix.needsUpdate=true}if(r.extraFoliage){r.extraFoliage.setMatrixAt(r.index,dummy.matrix);r.extraFoliage.instanceMatrix.needsUpdate=true}}
-function resetWorld(){for(const r of resources){r.used=false;r.mesh.setMatrixAt(r.index,r.original);r.mesh.instanceMatrix.needsUpdate=true;if(r.extraMesh){const p=trees[r.index];dummy.position.set(p[0],3,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]);dummy.updateMatrix();r.extraMesh.setMatrixAt(r.index,dummy.matrix);r.extraMesh.instanceMatrix.needsUpdate=true}if(r.extraFoliage){const p=trees[r.index];dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();r.extraFoliage.setMatrixAt(r.index,dummy.matrix);r.extraFoliage.instanceMatrix.needsUpdate=true}}for(const d of dinos){d.dead=false;d.hp=3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}player.position.set(0,0,0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;woodCount=stoneCount=fiberCount=0;hud()}
+function hideInstance(r){r.used=true;dummy.position.set(0,-1000,0);dummy.scale.setScalar(0);dummy.updateMatrix();r.mesh.setMatrixAt(r.index,dummy.matrix);r.mesh.instanceMatrix.needsUpdate=true;for(const linked of r.linked){linked.mesh.setMatrixAt(linked.index,dummy.matrix);linked.mesh.instanceMatrix.needsUpdate=true}}
+function resetWorld(){resetResourceRecords(resources);for(const d of dinos){d.dead=false;d.hp=3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}player.position.set(0,0,0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;woodCount=stoneCount=fiberCount=0;hud()}
 $('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);if(r.kind==='wood')woodCount+=2;else if(r.kind==='stone')stoneCount++;else fiberCount+=2;hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
 $('hit').onclick=()=>{let d=dinos.find(v=>v.hostile&&!v.dead&&v.mesh.position.distanceTo(player.position)<4);if(!d){say('Хищник слишком далеко');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);say('Хищник повержен!')}else say('Попадание! Ещё '+d.hp)};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
-$('start').onclick=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
+startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
+
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')$('collect').click();if(e.code==='Space')$('hit').click();if(e.code==='ShiftLeft'||e.code==='ShiftRight')running=true});
 addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft'||e.code==='ShiftRight')running=false});
 const stick=$('stick'),knob=$('knob');let stickId=null;
@@ -97,19 +156,31 @@ canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){yaw+=(e.clien
 function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
+function clearInput(){running=false;keys={};resetJoy()}
+addEventListener('blur',clearInput);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput()});
 function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
 if(playing){let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
-const forwardX=Math.sin(yaw),forwardZ=Math.cos(yaw),rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);const dx=(forwardX*forward+rightX*side)*speed*dt,dz=(forwardZ*forward+rightZ*side)*speed*dt;
+const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
 player.position.x=THREE.MathUtils.clamp(player.position.x+dx,-49,49);player.position.z=THREE.MathUtils.clamp(player.position.z+dz,-49,49);
 if(moving){const targetYaw=Math.atan2(dx,dz);let diff=Math.atan2(Math.sin(targetYaw-player.rotation.y),Math.cos(targetYaw-player.rotation.y));player.rotation.y+=diff*Math.min(1,dt*10)}
 const walk=Math.sin(t*(fast?13:8));legs[0].rotation.x=walk*(moving?.62:0);legs[1].rotation.x=-walk*(moving?.62:0);arms[0].rotation.x=-walk*(moving?.35:0);arms[1].rotation.x=walk*(moving?.35:0);torso.position.y=1.05+(moving?Math.abs(walk)*.035:0);
 for(const d of dinos){if(d.dead)continue;d.phase+=dt;const dist=d.mesh.position.distanceTo(player.position);if(d.hostile&&dist<21){const dir=player.position.clone().sub(d.mesh.position).normalize();d.mesh.position.addScaledVector(dir,d.speed*dt);d.mesh.lookAt(player.position.x,0,player.position.z);if(dist<2.05)hp=Math.max(0,hp-13*dt)}else{d.mesh.position.x=d.home.x+Math.sin(d.phase*.32)*2.1;d.mesh.position.z=d.home.z+Math.cos(d.phase*.27)*2.1;d.mesh.rotation.y=Math.atan2(Math.cos(d.phase*.32),-Math.sin(d.phase*.27))}const step=Math.sin(d.phase*4)*.28;d.feet[0].rotation.x=step;d.feet[1].rotation.x=-step;d.tail.rotation.z=Math.sin(d.phase*1.6)*.12;d.head.rotation.x=Math.sin(d.phase*1.4)*.025}
 camTarget.set(player.position.x-Math.sin(yaw)*7.5,4.4,player.position.z-Math.cos(yaw)*7.5);camera.position.lerp(camTarget,1-Math.exp(-dt*7));lookTarget.set(player.position.x,1.15,player.position.z);camera.lookAt(lookTarget);
 if(lastNotice>0){lastNotice-=dt;if(lastNotice<=0)$('notice').classList.remove('show')}hud();
-if(hp<=0){playing=false;gameOver=true;$('menu').classList.remove('hidden');$('menu').querySelector('h1').textContent='ИГРА ОКОНЧЕНА';$('menu').querySelector('p').textContent='Хищник настиг тебя. Нажми кнопку, чтобы начать заново.';$('start').textContent='ИГРАТЬ СНОВА'}
+if(hp<=0){playing=false;boot.stop();gameOver=true;$('menu').classList.remove('hidden');$('menu').querySelector('h1').textContent='ИГРА ОКОНЧЕНА';$('menu').querySelector('p').textContent='Хищник настиг тебя. Нажми кнопку, чтобы начать заново.';$('start').textContent='ИГРАТЬ СНОВА'}
 }
 renderer.render(scene,camera)}
 tick();
+}catch(error){
+ boot.fail(error);
+ if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.fail(error&&error.message);
+ $('menu').classList.remove('hidden');
+ $('menu').querySelector('h1').textContent='НЕ УДАЛОСЬ ЗАПУСТИТЬ';
+ $('menu').querySelector('p').textContent=(error&&error.message?error.message:'Ошибка загрузки игры')+' Если проблема повторяется, обнови страницу.';
+ $('start').textContent='ПОВТОРИТЬ';
+ $('start').disabled=false;
+}
 })();
 </script>
 </body>
