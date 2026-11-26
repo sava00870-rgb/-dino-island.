@@ -323,7 +323,7 @@ if(t-lastSave>30){saveGame(true);lastSave=t}
 if(lastNotice>0){lastNotice-=dt;if(lastNotice<=0)$('notice').classList.remove('show')}hud();
 if(hp<=0){playing=false;boot.stop();gameOver=true;$('menu').classList.remove('hidden');$('menu').querySelector('h1').textContent='ИГРА ОКОНЧЕНА';$('menu').querySelector('p').textContent='Хищник настиг тебя. Нажми кнопку, чтобы начать заново.';$('start').textContent='ИГРАТЬ СНОВА'}
 }
-renderer.render(scene,camera)}
+drawMinimap(dt);renderer.render(scene,camera)}
 const mapCanvas=$('minimap'),mapCtx=mapCanvas.getContext('2d');let mapTimer=0;
 function drawMinimap(dt){
  mapTimer+=dt;if(mapTimer<.16)return;mapTimer=0;
@@ -336,8 +336,6 @@ function drawMinimap(dt){
  for(const s of structures){ctx.fillStyle='#d6c6a2';ctx.fillRect(cx+s.x*scale-1,cy+s.z*scale-1,3,3)}
  ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(cx+player.position.x*scale,cy+player.position.z*scale,3.5,0,Math.PI*2);ctx.fill();
 }
-const originalTick=tick;
-function tickWithMap(){originalTick()}
 tick();
 
 }catch(error){
