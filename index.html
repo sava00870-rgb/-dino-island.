@@ -117,6 +117,7 @@ function buildTerrain(){
  const mesh=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true}));scene.add(mesh);return mesh;
 }
 const terrain=buildTerrain();
+const lake=new THREE.Mesh(new THREE.CircleGeometry(8,32),water);lake.rotation.x=-Math.PI/2;lake.position.set(26,world.sampleHeight(26,-30)+.08,-30);scene.add(lake);
 const rand=(a,b)=>a+Math.random()*(b-a),dummy=new THREE.Object3D(),resources=[];
 function point(){let a=rand(0,Math.PI*2),r=14+Math.sqrt(Math.random())*75;return [Math.cos(a)*r,Math.sin(a)*r]}
 function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],(p[2]||0)+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
@@ -211,14 +212,14 @@ function spawnStructure(data){
 }
 function placementContext(x,z,spec){
  const slope=Math.hypot((world.sampleHeight(x+1,z)-world.sampleHeight(x-1,z))/2,(world.sampleHeight(x,z+1)-world.sampleHeight(x,z-1))/2);
- return {slopeAt:()=>slope,overlaps:()=>blockers.some(o=>o.type==='circle'?Math.hypot(x-o.x,z-o.z)<o.radius+Math.max(spec.size[0],spec.size[2])*.45:x+spec.size[0]/2>o.minX&&x-spec.size[0]/2<o.maxX&&z+spec.size[2]/2>o.minZ&&z-spec.size[2]/2<o.maxZ),playerDistance:()=>Math.hypot(x-player.position.x,z-player.position.z),hasResources:cost=>Object.entries(cost).every(([id,n])=>(inventory.items[id]||0)>=n)};
+ return {slopeAt:()=>slope,overlaps:()=>blockers.some(o=>o.type==='circle'?Math.hypot(x-o.x,z-o.z)<o.radius+Math.max(spec.size[0],spec.size[2])*.45:x+spec.size[0]/2>o.minX&&x-spec.size[0]/2<o.maxX&&z+spec.size[2]/2>o.minZ&&z-spec.size[2]/2<o.maxZ),playerDistance:()=>Math.hypot(x-player.position.x,z-player.position.z),hasResources:cost=>Object.entries(cost).every(([id,n])=>(inventory.items[id]||0)>=Math.ceil(n*progression.modifiers.buildCost))};
 }
 function placeBuild(){
  if(!buildMode)return;
  const spec=BUILD_PIECES[buildMode],x=player.position.x+Math.sin(yaw)*3.2,z=player.position.z+Math.cos(yaw)*3.2,y=world.sampleHeight(x,z),transform={x,z,y,rotation:player.rotation.y};
  const result=validatePlacement(spec,transform,placementContext(x,z,spec));
  if(!result.valid){say(result.reason);return}
- for(const [id,count] of Object.entries(spec.cost))removeItem(inventory,id,count);
+ for(const [id,count] of Object.entries(spec.cost))removeItem(inventory,id,Math.ceil(count*progression.modifiers.buildCost));
  const data=createStructure(buildMode,transform);structures.push(data);spawnStructure(data);addExperience(progression,12);
  if(ghost){scene.remove(ghost);ghost=null}buildMode=null;syncInventory();hud();saveGame();say(spec.name+' построен');
 }
@@ -231,7 +232,7 @@ function openPanel(kind){clearInput();
   const labels={wood:'Древесина',stone:'Камень',fiber:'Волокно',meat:'Мясо',hide:'Шкура',axe:'Каменный топор',spear:'Копьё','campfire-kit':'Набор костра','workbench-kit':'Набор верстака',ration:'Паёк'};
   const items=Object.entries(inventory.items).filter(([,n])=>n>0).map(([id,n])=>'<div class="game-row"><span>'+((labels[id]||id))+'</span><b>×'+n+'</b></div>').join('')||'<p>Пока пусто. Собирай ресурсы на острове.</p>';
   const recipes=RECIPES.map(r=>'<button data-action="craft" data-id="'+r.id+'">'+r.name+'<br><small>'+Object.entries(r.ingredients).map(([id,n])=>id+' '+n).join(' · ')+'</small></button>').join('');
-  panelBody.innerHTML='<h3>Предметы</h3>'+items+'<h3>Создание предметов</h3><div class="game-grid">'+recipes+'</div><div class="game-row"><span>Еда: мясо '+(inventory.items.meat||0)+'</span><button data-action="eat">Съесть</button></div>';
+  panelBody.innerHTML='<h3>Предметы</h3>'+items+'<h3>Создание предметов</h3><div class="game-grid">'+recipes+'</div><div class="game-row"><span>Еда: мясо '+(inventory.items.meat||0)+'</span><button data-action="eat">Съесть</button></div><div class="game-row"><span>Вода: восстановить жажду у озера</span><button data-action="drink">Пить</button></div>';
  }else if(kind==='build'){
   const pieces=Object.entries(BUILD_PIECES).map(([id,s])=>'<button data-action="select-build" data-id="'+id+'">'+s.name+'<br><small>'+Object.entries(s.cost).map(([k,v])=>k+' '+v).join(' · ')+'</small></button>').join('');
   panelBody.innerHTML='<p>Выбери деталь, затем нажми «Поставить перед собой». Нельзя строить на склоне, внутри препятствий или далеко от игрока.</p><div class="game-grid">'+pieces+'</div><div class="game-row"><span>Выбрано: '+(buildMode?BUILD_PIECES[buildMode].name:'ничего')+'</span><button class="primary" data-action="place">ПОСТАВИТЬ</button></div><div class="game-row"><span>Построек: '+structures.length+'</span><button data-action="cancel-build">Отмена</button></div>';
@@ -253,12 +254,13 @@ panelBody.addEventListener('click',event=>{
  else if(action==='cancel-build'){buildMode=null;if(ghost){scene.remove(ghost);ghost=null}openPanel('build')}
  else if(action==='skill'){if(buySkill(progression,id)){hud();saveGame();say('Навык улучшен')}else say('Нет очков или достигнут максимум');openPanel('skills')}
  else if(action==='eat'){if(removeItem(inventory,'meat',1)){hunger=Math.min(100,hunger+32);hud();saveGame();say('Ты поел')}else say('Нет мяса');openPanel('inventory')}
+ else if(action==='drink'){if(Math.hypot(player.position.x-26,player.position.z+30)<11){thirst=100;hud();saveGame();say('Ты напился из озера')}else say('Найди озеро в болотистой части острова');openPanel('inventory')}
 });
 $('gamePanel').addEventListener('pointerdown',event=>event.stopPropagation());
 if(savedState.ok){player.position.set(savedState.data.player.x||0,world.sampleHeight(savedState.data.player.x||0,savedState.data.player.z||0),savedState.data.player.z||0);hud()}
 
-$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,r.kind==='stone'?1:2);addExperience(progression,4);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
-$('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
+$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,Math.ceil((r.kind==='stone'?1:2)*progression.modifiers.gatherYield));addExperience(progression,4);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
+$('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp-=inventory.items.spear?Math.ceil(progression.modifiers.meleeDamage*2):Math.ceil(progression.modifiers.meleeDamage);d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
 startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
