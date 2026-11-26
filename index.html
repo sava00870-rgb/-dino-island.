@@ -168,15 +168,95 @@ const dinos=[
  makeDino(-42,-18,'raptor'),makeDino(48,32,'herb'),makeDino(-62,52,'stego'),
  makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd')
 ];
-const inventory=createInventory({wood:0,stone:0,fiber:0},40,30),progression=createProgression();
-let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,hunger=100,thirst=100,lastNotice=0,gameOver=false,structures=[],buildMode=null,ghost=null;
+const savedState=loadFromStorage(localStorage);
+const inventory=createInventory(savedState.ok?savedState.data.inventory:{wood:0,stone:0,fiber:0},40,30);
+const progression=createProgression(savedState.ok?savedState.data.progression:{});
+let hunger=savedState.ok?(savedState.data.player.hunger??100):100,thirst=savedState.ok?(savedState.data.player.thirst??100):100;
+let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=savedState.ok?(savedState.data.player.hp??100):100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false,structures=savedState.ok?[...savedState.data.structures]:[],buildMode=null,ghost=null,lastSave=0;
 const dinoBlockers=dinos.map(d=>({type:'circle',x:d.mesh.position.x,z:d.mesh.position.z,radius:d.hostile?1.15:.85,creature:d})),collisionBlockers=blockers.concat(dinoBlockers);
 function syncInventory(){woodCount=inventory.items.wood||0;stoneCount=inventory.items.stone||0;fiberCount=inventory.items.fiber||0}
 function say(t){$('notice').textContent=t;$('notice').classList.add('show');lastNotice=2}
 function hud(){syncInventory();$('health').style.width=hp+'%';$('stamina').style.width=energy+'%';$('hunger').style.width=hunger+'%';$('thirst').style.width=thirst+'%';$('levelLabel').textContent='УРОВЕНЬ '+progression.level+' · '+Math.floor(progression.xp)+' XP';$('bag').textContent='🪵 '+woodCount+'　🪨 '+stoneCount+'　🌿 '+fiberCount}
 function nearest(){let found=null,best=3.4;for(const r of resources){if(r.used)continue;let d=Math.hypot(r.x-player.position.x,r.z-player.position.z);if(d<best){best=d;found=r}}return found}
 function hideInstance(r){r.used=true;dummy.position.set(0,-1000,0);dummy.scale.setScalar(0);dummy.updateMatrix();r.mesh.setMatrixAt(r.index,dummy.matrix);r.mesh.instanceMatrix.needsUpdate=true;for(const linked of r.linked){linked.mesh.setMatrixAt(linked.index,dummy.matrix);linked.mesh.instanceMatrix.needsUpdate=true}}
-function resetWorld(){resetResourceRecords(resources);for(const d of dinos){d.dead=false;d.hp=d.species==='rex'?7:3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}player.position.set(0,world.sampleHeight(0,0),0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;hunger=thirst=100;inventory.items={wood:0,stone:0,fiber:0};hud()}
+function resetWorld(){resetResourceRecords(resources);for(const d of dinos){d.dead=false;d.hp=d.species==='rex'?7:3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}for(const s of structures){if(s.mesh)scene.remove(s.mesh)}structures=[];player.position.set(0,world.sampleHeight(0,0),0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;hunger=thirst=100;inventory.items={wood:0,stone:0,fiber:0};progression.xp=0;progression.level=1;progression.skillPoints=0;progression.skills={};hud()}
+const RECIPES=[
+ {id:'axe',name:'Каменный топор',ingredients:{wood:3,stone:2},output:{id:'axe',count:1}},
+ {id:'spear',name:'Копьё',ingredients:{wood:2,stone:1,fiber:1},output:{id:'spear',count:1}},
+ {id:'campfire',name:'Костёр',ingredients:{wood:5,stone:3},output:{id:'campfire-kit',count:1}},
+ {id:'workbench',name:'Верстак',ingredients:{wood:8,fiber:4},output:{id:'workbench-kit',count:1}},
+ {id:'ration',name:'Походный паёк',ingredients:{meat:1,fiber:1},output:{id:'ration',count:1}}
+];
+const BUILD_PIECES={
+ foundation:{name:'Фундамент',cost:{wood:6,stone:2},size:[3.4,.28,3.4],color:0x98704a,maxSlope:.28},
+ wall:{name:'Стена',cost:{wood:4},size:[3.2,2.6,.22],color:0x9a7048,maxSlope:.4},
+ doorway:{name:'Дверной проём',cost:{wood:6},size:[3.2,2.6,.22],color:0x805a39,maxSlope:.4},
+ roof:{name:'Крыша',cost:{wood:5,fiber:2},size:[3.5,.22,3.5],color:0x77543b,maxSlope:.3},
+ fence:{name:'Забор',cost:{wood:2},size:[2.4,1.1,.16],color:0x9a7048,maxSlope:.5},
+ campfire:{name:'Костёр',cost:{wood:4,stone:3},size:[1.2,.35,1.2],color:0x66645b,maxSlope:.6},
+ chest:{name:'Сундук',cost:{wood:6},size:[1,.75,.8],color:0x765033,maxSlope:.5},
+ workbench:{name:'Верстак',cost:{wood:8,fiber:4},size:[1.7,1,.85],color:0x9b754c,maxSlope:.5}
+};
+function saveGame(){
+ const ok=saveToStorage(localStorage,{player:{x:player.position.x,z:player.position.z,hp,hunger,thirst},inventory:inventory.items,structures,seed:world.seed,progression:{xp:progression.xp,level:progression.level,skillPoints:progression.skillPoints,skills:progression.skills}});
+ say(ok?'Мир сохранён':'Не удалось сохранить мир');return ok;
+}
+function spawnStructure(data){
+ const spec=BUILD_PIECES[data.pieceId];if(!spec)return;
+ const geometry=new THREE.BoxGeometry(...spec.size),material=new THREE.MeshLambertMaterial({color:spec.color}),mesh=new THREE.Mesh(geometry,material);
+ mesh.position.set(data.x,data.y+spec.size[1]/2,data.z);mesh.rotation.y=data.rotation||0;scene.add(mesh);
+ const halfX=spec.size[0]/2,halfZ=spec.size[2]/2;
+ const obstacle={type:'aabb',minX:data.x-halfX,minZ:data.z-halfZ,maxX:data.x+halfX,maxZ:data.z+halfZ,structureId:data.id};
+ blockers.push(obstacle);collisionBlockers.push(obstacle);data.mesh=mesh;data.obstacle=obstacle;
+}
+function placementContext(x,z,spec){
+ const slope=Math.hypot((world.sampleHeight(x+1,z)-world.sampleHeight(x-1,z))/2,(world.sampleHeight(x,z+1)-world.sampleHeight(x,z-1))/2);
+ return {slopeAt:()=>slope,overlaps:()=>blockers.some(o=>o.type==='circle'?Math.hypot(x-o.x,z-o.z)<o.radius+Math.max(spec.size[0],spec.size[2])*.45:x+spec.size[0]/2>o.minX&&x-spec.size[0]/2<o.maxX&&z+spec.size[2]/2>o.minZ&&z-spec.size[2]/2<o.maxZ),playerDistance:()=>Math.hypot(x-player.position.x,z-player.position.z),hasResources:cost=>Object.entries(cost).every(([id,n])=>(inventory.items[id]||0)>=n)};
+}
+function placeBuild(){
+ if(!buildMode)return;
+ const spec=BUILD_PIECES[buildMode],x=player.position.x+Math.sin(yaw)*3.2,z=player.position.z+Math.cos(yaw)*3.2,y=world.sampleHeight(x,z),transform={x,z,y,rotation:player.rotation.y};
+ const result=validatePlacement(spec,transform,placementContext(x,z,spec));
+ if(!result.valid){say(result.reason);return}
+ for(const [id,count] of Object.entries(spec.cost))removeItem(inventory,id,count);
+ const data=createStructure(buildMode,transform);structures.push(data);spawnStructure(data);addExperience(progression,12);
+ if(ghost){scene.remove(ghost);ghost=null}buildMode=null;syncInventory();hud();saveGame();say(spec.name+' построен');
+}
+for(const data of structures)spawnStructure(data);
+const panel=$('gamePanel'),panelBody=$('panelBody');
+function openPanel(kind){
+ $('panelTitle').textContent=kind==='inventory'?'Инвентарь':kind==='build'?'Строительство':kind==='skills'?'Прокачка':kind==='map'?'Карта острова':'Журнал';
+ panel.classList.remove('hidden');
+ if(kind==='inventory'){
+  const labels={wood:'Древесина',stone:'Камень',fiber:'Волокно',meat:'Мясо',hide:'Шкура',axe:'Каменный топор',spear:'Копьё','campfire-kit':'Набор костра','workbench-kit':'Набор верстака',ration:'Паёк'};
+  const items=Object.entries(inventory.items).filter(([,n])=>n>0).map(([id,n])=>'<div class="game-row"><span>'+((labels[id]||id))+'</span><b>×'+n+'</b></div>').join('')||'<p>Пока пусто. Собирай ресурсы на острове.</p>';
+  const recipes=RECIPES.map(r=>'<button data-action="craft" data-id="'+r.id+'">'+r.name+'<br><small>'+Object.entries(r.ingredients).map(([id,n])=>id+' '+n).join(' · ')+'</small></button>').join('');
+  panelBody.innerHTML='<h3>Предметы</h3>'+items+'<h3>Создание предметов</h3><div class="game-grid">'+recipes+'</div><div class="game-row"><span>Еда: мясо '+(inventory.items.meat||0)+'</span><button data-action="eat">Съесть</button></div>';
+ }else if(kind==='build'){
+  const pieces=Object.entries(BUILD_PIECES).map(([id,s])=>'<button data-action="select-build" data-id="'+id+'">'+s.name+'<br><small>'+Object.entries(s.cost).map(([k,v])=>k+' '+v).join(' · ')+'</small></button>').join('');
+  panelBody.innerHTML='<p>Выбери деталь, затем нажми «Поставить перед собой». Нельзя строить на склоне, внутри препятствий или далеко от игрока.</p><div class="game-grid">'+pieces+'</div><div class="game-row"><span>Выбрано: '+(buildMode?BUILD_PIECES[buildMode].name:'ничего')+'</span><button class="primary" data-action="place">ПОСТАВИТЬ</button></div><div class="game-row"><span>Построек: '+structures.length+'</span><button data-action="cancel-build">Отмена</button></div>';
+ }else if(kind==='skills'){
+  const skills=[['survival','Выживание','Больше здоровья и выносливости'],['gathering','Собиратель','Больше ресурсов и прочность инструментов'],['combat','Боец','Урон и сопротивление'],['builder','Строитель','Дешевле и прочнее постройки']];
+  panelBody.innerHTML='<p>Уровень '+progression.level+' · '+Math.floor(progression.xp)+' XP · очков навыков: '+progression.skillPoints+'</p>'+skills.map(([id,name,desc])=>'<div class="game-row"><span><b>'+name+'</b><br><small>'+desc+' · уровень '+(progression.skills[id]||0)+'/5</small></span><button data-action="skill" data-id="'+id+'">Улучшить</button></div>').join('');
+ }else if(kind==='map'){
+  const biome=world.sampleBiome(player.position.x,player.position.z);
+  panelBody.innerHTML='<p>Ты находишься в биоме: <b>'+biome+'</b></p><p>Координаты: X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z)+'</p><p>Остров: радиус '+world.radius+' м. Зоны: пляж, луг, лес, болото, скалы и горы.</p><p>Ориентиры и секретные места будут открываться по мере исследования.</p>';
+ }
+}
+function closePanel(){panel.classList.add('hidden')}
+$('inventoryBtn').onclick=()=>openPanel('inventory');$('buildBtn').onclick=()=>openPanel('build');$('skillsBtn').onclick=()=>openPanel('skills');$('mapBtn').onclick=()=>openPanel('map');$('closePanel').onclick=closePanel;
+panelBody.addEventListener('click',event=>{
+ const button=event.target.closest('button[data-action]');if(!button)return;const action=button.dataset.action,id=button.dataset.id;
+ if(action==='craft'){const recipe=RECIPES.find(r=>r.id===id),result=craftItem(inventory,recipe);if(result.ok){addExperience(progression,10);say(result.reason);syncInventory();saveGame()}else say(result.reason);openPanel('inventory')}
+ else if(action==='select-build'){buildMode=id;if(ghost)scene.remove(ghost);const spec=BUILD_PIECES[id];ghost=new THREE.Mesh(new THREE.BoxGeometry(...spec.size),new THREE.MeshBasicMaterial({color:0x8de6a6,transparent:true,opacity:.35,wireframe:true}));scene.add(ghost);closePanel();say('Режим строительства: '+spec.name+' · открой меню строительства, чтобы поставить')}
+ else if(action==='place'){placeBuild();openPanel('build')}
+ else if(action==='cancel-build'){buildMode=null;if(ghost){scene.remove(ghost);ghost=null}openPanel('build')}
+ else if(action==='skill'){if(buySkill(progression,id)){hud();saveGame();say('Навык улучшен')}else say('Нет очков или достигнут максимум');openPanel('skills')}
+ else if(action==='eat'){if(removeItem(inventory,'meat',1)){hunger=Math.min(100,hunger+32);hud();saveGame();say('Ты поел')}else say('Нет мяса');openPanel('inventory')}
+});
+$('gamePanel').addEventListener('pointerdown',event=>event.stopPropagation());
+if(savedState.ok){player.position.set(savedState.data.player.x||0,world.sampleHeight(savedState.data.player.x||0,savedState.data.player.z||0),savedState.data.player.z||0);hud()}
+
 $('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber';addItem(inventory,item,r.kind==='stone'?1:2);addExperience(progression,4);hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
 $('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
