@@ -65,11 +65,11 @@ const boot=createBootController({
   else if(state==='playing'){button.disabled=true}
  }
 });
+let startGameAction=null;
 $('start').onclick=()=>{
  if(boot.state==='error'){location.reload();return}
  if(!boot.start())return;
- if(gameOver){resetWorld();gameOver=false}
- $('menu').classList.add('hidden');playing=true;lastNotice=0
+ if(startGameAction)startGameAction();
 };
 try{
 const renderer=boot.initialize();
@@ -83,7 +83,6 @@ canvas.addEventListener('webglcontextlost',event=>{
  $('menu').querySelector('h1').textContent='ГРАФИКА ПРИОСТАНОВЛЕНА';
  $('menu').querySelector('p').textContent=error.message;
 });
-canvas.addEventListener('webglcontextrestored',()=>location.reload());
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,48,115);
 const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,180);
 scene.add(new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1));
@@ -142,6 +141,7 @@ $('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе 
 $('hit').onclick=()=>{let d=dinos.find(v=>v.hostile&&!v.dead&&v.mesh.position.distanceTo(player.position)<4);if(!d){say('Хищник слишком далеко');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);say('Хищник повержен!')}else say('Попадание! Ещё '+d.hp)};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
+startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
 
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')$('collect').click();if(e.code==='Space')$('hit').click();if(e.code==='ShiftLeft'||e.code==='ShiftRight')running=true});
 addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft'||e.code==='ShiftRight')running=false});
