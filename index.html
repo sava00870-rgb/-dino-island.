@@ -90,26 +90,45 @@ scene.add(new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1));
 const sun=new THREE.DirectionalLight(0xffe6bd,1.25);sun.position.set(-25,35,18);scene.add(sun);
 const mat=(c,r=.9)=>new THREE.MeshLambertMaterial({color:c});
 const green=mat(0x5e914b),sand=mat(0xc4b17a),water=mat(0x347f91),wood=mat(0x765033),leaf1=mat(0x2d6c3d),leaf2=mat(0x43864b),rockMat=mat(0x818b85),bushMat=mat(0x477d3e);
-const sea=new THREE.Mesh(new THREE.CircleGeometry(92,48),water);sea.rotation.x=-Math.PI/2;sea.position.y=-.65;scene.add(sea);
-const island=new THREE.Mesh(new THREE.CircleGeometry(56,64),sand);island.rotation.x=-Math.PI/2;island.position.y=-.18;scene.add(island);
-const land=new THREE.Mesh(new THREE.CircleGeometry(51,64),green);land.rotation.x=-Math.PI/2;land.position.y=-.12;scene.add(land);
+const world=createWorld('dino-island-2026',{radius:110});
+const sea=new THREE.Mesh(new THREE.CircleGeometry(165,64),water);sea.rotation.x=-Math.PI/2;sea.position.y=-4;scene.add(sea);
+const beach=new THREE.Mesh(new THREE.CircleGeometry(world.radius,96),sand);beach.rotation.x=-Math.PI/2;beach.position.y=-.3;scene.add(beach);
+function buildTerrain(){
+ const segments=112,size=world.radius*2,positions=[],colors=[],indices=[],color=new THREE.Color();
+ const palette={beach:0xc9b27b,meadow:0x6e9b50,forest:0x326b3e,mountains:0x858b88,swamp:0x536d4d,rocky:0x77745e};
+ for(let iz=0;iz<=segments;iz++)for(let ix=0;ix<=segments;ix++){
+  const x=-world.radius+size*ix/segments,z=-world.radius+size*iz/segments,d=Math.hypot(x,z);
+  const y=d>world.radius?-5:world.sampleHeight(x,z);
+  positions.push(x,y,z);color.setHex(palette[world.sampleBiome(x,z)]||0x6e9b50);
+  if(y>12)color.lerp(new THREE.Color(0x9b9b8e),Math.min(.65,(y-12)/25));
+  colors.push(color.r,color.g,color.b);
+  if(ix<segments&&iz<segments){const a=iz*(segments+1)+ix,b=a+1,cc=a+segments+1,dd=cc+1;indices.push(a,cc,b,b,cc,dd)}
+ }
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+ const mesh=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true}));scene.add(mesh);return mesh;
+}
+const terrain=buildTerrain();
 const rand=(a,b)=>a+Math.random()*(b-a),dummy=new THREE.Object3D(),resources=[];
-function point(){let a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*46;return [Math.cos(a)*r,Math.sin(a)*r]}
-function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],p[2]||0,p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
-const trees=Array.from({length:66},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
+function point(){let a=rand(0,Math.PI*2),r=14+Math.sqrt(Math.random())*75;return [Math.cos(a)*r,Math.sin(a)*r]}
+function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],(p[2]||0)+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
+const trees=Array.from({length:170},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
 const trunks=addInstances(new THREE.CylinderGeometry(.18,.27,2.5,6),wood,trees.map(p=>[p[0],p[1],1.15,p[3],p[4]]),'wood');
 const crowns=addInstances(new THREE.ConeGeometry(1.35,3.2,7),leaf1,trees.map(p=>[p[0],p[1],3,p[3],p[4]]),null);
-const rocks=Array.from({length:34},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
+const rocks=Array.from({length:72},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
 const rockMesh=addInstances(new THREE.DodecahedronGeometry(.65,0),rockMat,rocks,'stone');
-const bushes=Array.from({length:36},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
+const bushes=Array.from({length:96},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
 const bushMesh=addInstances(new THREE.IcosahedronGeometry(.55,0),bushMat,bushes,'fiber');
-const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{
+const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{
  const p=trees[r.index];
- dummy.position.set(p[0],3,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]);dummy.updateMatrix();
+ dummy.position.set(p[0],3+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]);dummy.updateMatrix();
  const crownOriginal=dummy.matrix.clone();
- dummy.position.set(p[0]+.18,2.65,p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();
+ dummy.position.set(p[0]+.18,2.65+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();
  r.linked=[{mesh:crowns,index:r.index,original:crownOriginal},{mesh:foliage,index:r.index,original:dummy.matrix.clone()}];
 });
+const blockers=[];
+for(const p of trees)blockers.push({type:'circle',x:p[0],z:p[1],radius:.52*p[4]});
+for(const p of rocks)blockers.push({type:'circle',x:p[0],z:p[1],radius:.62*p[4]});
+for(const p of bushes)blockers.push({type:'circle',x:p[0],z:p[1],radius:.34*p[4]});
 const player=new THREE.Group();scene.add(player);
 const shirt=mat(0x3b83a5),pants=mat(0x34404b),skin=mat(0xc99370),dark=mat(0x202b29);
 function limb(parent,material,length,radius,x,y,z){const pivot=new THREE.Group();pivot.position.set(x,y,z);const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length*.48,2,5),material);mesh.position.y=-length*.42;pivot.add(mesh);parent.add(pivot);return pivot}
@@ -118,7 +137,7 @@ const head=new THREE.Mesh(new THREE.SphereGeometry(.25,10,8),skin);head.position
 const hair=new THREE.Mesh(new THREE.SphereGeometry(.255,8,6),dark);hair.scale.set(1,.48,1);hair.position.set(0,1.84,.02);player.add(hair);
 const legs=[limb(player,pants,.75,.13,-.17,.72,0),limb(player,pants,.75,.13,.17,.72,0)];
 const arms=[limb(player,skin,.62,.095,-.42,1.35,0),limb(player,skin,.62,.095,.42,1.35,0)];
-function makeDino(x,z,type){const g=new THREE.Group();scene.add(g);const hostile=type==='rex',base=mat(hostile?0x80503c:type==='trike'?0x718c55:0x9a9b58),belly=mat(hostile?0xb18a65:0xc2b783),eye=mat(0xffe4a0),black=mat(0x171512);
+function makeDino(x,z,type){const g=new THREE.Group();scene.add(g);const hostile=type==='rex'||type==='raptor',base=mat(hostile?0x80503c:type==='trike'?0x718c55:type==='stego'?0x637b48:type==='ptero'?0x6b5b8a:0x9a9b58),belly=mat(hostile?0xb18a65:0xc2b783),eye=mat(0xffe4a0),black=mat(0x171512);
 const body=new THREE.Mesh(new THREE.SphereGeometry(1,12,9),base);body.scale.set(hostile?.82:.9,hostile?.68:.72,hostile?1.35:1.18);body.position.y=1.12;g.add(body);
 const bellyMesh=new THREE.Mesh(new THREE.SphereGeometry(1,10,7),belly);bellyMesh.scale.set(.68,.34,.9);bellyMesh.position.set(0,.82,.12);g.add(bellyMesh);
 const neck=new THREE.Mesh(new THREE.SphereGeometry(.48,10,8),base);neck.scale.set(.72,.8,.8);neck.position.set(0,1.45,.8);g.add(neck);
@@ -130,8 +149,16 @@ for(const side of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.075,7
 const tail=new THREE.Mesh(new THREE.ConeGeometry(.38,1.9,7),base);tail.rotation.x=-Math.PI/2;tail.position.set(0,1,-1.45);g.add(tail);
 const feet=[];for(const side of [-1,1]){let leg=new THREE.Group();leg.position.set(side*.43,.75,0);g.add(leg);let thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.48,2,6),base);thigh.position.y=-.25;leg.add(thigh);let foot=new THREE.Mesh(new THREE.BoxGeometry(.27,.13,.4),base);foot.position.set(0,-.49,.12);leg.add(foot);feet.push(leg)}
 if(type==='trike'){for(let i=-1;i<=1;i++){let horn=new THREE.Mesh(new THREE.ConeGeometry(.09,.48,6),belly);horn.position.set(i*.2,1.99,1.48);horn.rotation.x=-.5;g.add(horn)}const frill=new THREE.Mesh(new THREE.SphereGeometry(.48,9,7),base);frill.scale.set(1,.95,.25);frill.position.set(0,1.8,.85);g.add(frill)}
-g.position.set(x,0,z);return{mesh:g,head:headG,tail,feet,home:new THREE.Vector3(x,0,z),hostile,hp:3,phase:rand(0,8),dead:false,speed:hostile?2.1:.7}}
-const dinos=[makeDino(13,-12,'rex'),makeDino(-22,15,'trike'),makeDino(27,19,'herb')];
+if(type==='stego'){for(let i=0;i<5;i++){const plate=new THREE.Mesh(new THREE.ConeGeometry(.23,.58,5),belly);plate.position.set(0,1.8-i*.12,-.7+i*.42);plate.rotation.x=Math.PI;g.add(plate)}}
+if(type==='ptero'){for(const side of [-1,1]){const wing=new THREE.Mesh(new THREE.BoxGeometry(1.65,.08,.48),base);wing.position.set(side*.9,1.65,.1);wing.rotation.z=side*.12;g.add(wing)}}
+if(type==='small')g.scale.setScalar(.58);
+if(type==='raptor')g.scale.set(.78,.82,1.05);
+g.position.set(x,world.sampleHeight(x,z),z);return{mesh:g,head:headG,tail,feet,home:new THREE.Vector3(x,world.sampleHeight(x,z),z),hostile,hp:type==='rex'?7:3,phase:rand(0,8),dead:false,speed:type==='rex'?2.5:hostile?3.2:.7,species:type}}
+const dinos=[
+ makeDino(13,-12,'rex'),makeDino(-22,15,'trike'),makeDino(27,19,'herb'),
+ makeDino(-42,-18,'raptor'),makeDino(48,32,'herb'),makeDino(-62,52,'stego'),
+ makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd')
+];
 let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,hp=100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false;
 function say(t){$('notice').textContent=t;$('notice').classList.add('show');lastNotice=2}
 function hud(){$('health').style.width=hp+'%';$('stamina').style.width=energy+'%';$('bag').textContent='🪵 '+woodCount+'　🪨 '+stoneCount+'　🌿 '+fiberCount}
@@ -139,7 +166,7 @@ function nearest(){let found=null,best=3.4;for(const r of resources){if(r.used)c
 function hideInstance(r){r.used=true;dummy.position.set(0,-1000,0);dummy.scale.setScalar(0);dummy.updateMatrix();r.mesh.setMatrixAt(r.index,dummy.matrix);r.mesh.instanceMatrix.needsUpdate=true;for(const linked of r.linked){linked.mesh.setMatrixAt(linked.index,dummy.matrix);linked.mesh.instanceMatrix.needsUpdate=true}}
 function resetWorld(){resetResourceRecords(resources);for(const d of dinos){d.dead=false;d.hp=3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}player.position.set(0,0,0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;woodCount=stoneCount=fiberCount=0;hud()}
 $('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}hideInstance(r);if(r.kind==='wood')woodCount+=2;else if(r.kind==='stone')stoneCount++;else fiberCount+=2;hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
-$('hit').onclick=()=>{let d=dinos.find(v=>v.hostile&&!v.dead&&v.mesh.position.distanceTo(player.position)<4);if(!d){say('Хищник слишком далеко');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);say('Хищник повержен!')}else say('Попадание! Ещё '+d.hp)};
+$('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp--;d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)woodCount+=1;else fiberCount+=1;hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
 $('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
 startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
@@ -163,11 +190,12 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput(
 function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
 if(playing){let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
 const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
-player.position.x=THREE.MathUtils.clamp(player.position.x+dx,-49,49);player.position.z=THREE.MathUtils.clamp(player.position.z+dz,-49,49);
+const moved=resolveCircleMovement({x:player.position.x,z:player.position.z},{x:dx,z:dz},.55,blockers,{radius:world.innerRadius});
+player.position.x=moved.position.x;player.position.z=moved.position.z;player.position.y=world.sampleHeight(player.position.x,player.position.z);
 if(moving){const targetYaw=Math.atan2(dx,dz);let diff=Math.atan2(Math.sin(targetYaw-player.rotation.y),Math.cos(targetYaw-player.rotation.y));player.rotation.y+=diff*Math.min(1,dt*10)}
 const walk=Math.sin(t*(fast?13:8));legs[0].rotation.x=walk*(moving?.62:0);legs[1].rotation.x=-walk*(moving?.62:0);arms[0].rotation.x=-walk*(moving?.35:0);arms[1].rotation.x=walk*(moving?.35:0);torso.position.y=1.05+(moving?Math.abs(walk)*.035:0);
-for(const d of dinos){if(d.dead)continue;d.phase+=dt;const dist=d.mesh.position.distanceTo(player.position);if(d.hostile&&dist<21){const dir=player.position.clone().sub(d.mesh.position).normalize();d.mesh.position.addScaledVector(dir,d.speed*dt);d.mesh.lookAt(player.position.x,0,player.position.z);if(dist<2.05)hp=Math.max(0,hp-13*dt)}else{d.mesh.position.x=d.home.x+Math.sin(d.phase*.32)*2.1;d.mesh.position.z=d.home.z+Math.cos(d.phase*.27)*2.1;d.mesh.rotation.y=Math.atan2(Math.cos(d.phase*.32),-Math.sin(d.phase*.27))}const step=Math.sin(d.phase*4)*.28;d.feet[0].rotation.x=step;d.feet[1].rotation.x=-step;d.tail.rotation.z=Math.sin(d.phase*1.6)*.12;d.head.rotation.x=Math.sin(d.phase*1.4)*.025}
-camTarget.set(player.position.x-Math.sin(yaw)*7.5,4.4,player.position.z-Math.cos(yaw)*7.5);camera.position.lerp(camTarget,1-Math.exp(-dt*7));lookTarget.set(player.position.x,1.15,player.position.z);camera.lookAt(lookTarget);
+for(const d of dinos){if(d.dead)continue;d.phase+=dt;const dist=d.mesh.position.distanceTo(player.position);if(d.hostile&&dist<24){const dir=player.position.clone().sub(d.mesh.position).normalize();d.mesh.position.addScaledVector(dir,d.speed*dt);d.mesh.lookAt(player.position.x,d.mesh.position.y,player.position.z);if(dist<2.05)hp=Math.max(0,hp-(d.species==='rex'?18:11)*dt)}else if(!d.hostile&&dist<8){const dir=d.mesh.position.clone().sub(player.position).normalize();d.mesh.position.addScaledVector(dir,d.speed*2*dt);d.mesh.lookAt(d.mesh.position.x,d.mesh.position.y,d.mesh.position.z+dir.z)}else{d.mesh.position.x=d.home.x+Math.sin(d.phase*.32)*3.2;d.mesh.position.z=d.home.z+Math.cos(d.phase*.27)*3.2;d.mesh.rotation.y=Math.atan2(Math.cos(d.phase*.32),-Math.sin(d.phase*.27))}d.mesh.position.y=world.sampleHeight(d.mesh.position.x,d.mesh.position.z);const step=Math.sin(d.phase*4)*.28;d.feet[0].rotation.x=step;d.feet[1].rotation.x=-step;d.tail.rotation.z=Math.sin(d.phase*1.6)*.12;d.head.rotation.x=Math.sin(d.phase*1.4)*.025}
+camTarget.set(player.position.x-Math.sin(yaw)*8.5,player.position.y+5.0,player.position.z-Math.cos(yaw)*8.5);camera.position.lerp(camTarget,1-Math.exp(-dt*7));lookTarget.set(player.position.x,player.position.y+1.25,player.position.z);camera.lookAt(lookTarget);
 if(lastNotice>0){lastNotice-=dt;if(lastNotice<=0)$('notice').classList.remove('show')}hud();
 if(hp<=0){playing=false;boot.stop();gameOver=true;$('menu').classList.remove('hidden');$('menu').querySelector('h1').textContent='ИГРА ОКОНЧЕНА';$('menu').querySelector('p').textContent='Хищник настиг тебя. Нажми кнопку, чтобы начать заново.';$('start').textContent='ИГРАТЬ СНОВА'}
 }
