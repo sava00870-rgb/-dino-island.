@@ -12,5 +12,4 @@ jobs:
         with:
           node-version: 22
       - run: npm test
-      - run: node --check src/game-logic.js
-      - run: node --check src/boot-controller.js
+      - run: for file in src/*.js; do node --check "$file"; done
