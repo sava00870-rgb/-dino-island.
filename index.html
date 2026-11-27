@@ -29,7 +29,7 @@
  <div class="notice" id="notice"></div><canvas id="minimap" width="112" height="112"></canvas>
  <div class="game-panel hidden" id="gamePanel"><div class="game-card"><div class="game-head"><strong id="panelTitle">Инвентарь</strong><button id="closePanel" aria-label="Закрыть">×</button></div><div id="panelBody"></div></div></div>
  <div id="stick"><div id="knob"></div></div>
- <div class="actions"><button id="collect">✋<br>СОБРАТЬ</button><button id="run">⚡<br>БЕГ</button><button id="hit" class="main">🪓<br>УДАР</button><button id="center">🧭<br>ЦЕЛЬ</button></div>
+ <div class="actions"><button id="collect">✋<br>СОБРАТЬ</button><button id="run">⚡<br>БЕГ</button><button id="hit" class="main">🪓<br>УДАР</button><button id="center">🧭<br>ЦЕЛЬ</button><button id="track">👣<br>СЛЕДЫ</button></div>
  <div class="hotbar" id="hotbar"><button data-slot="axe">🪓<small>ТОПОР</small></button><button data-slot="spear">🔱<small>КОПЬЁ</small></button><button data-slot="meat">🍖<small>МЯСО</small></button><button data-slot="ration">🥫<small>ПАЁК</small></button></div>
  <div class="hint">Джойстик — движение · свайп по правой части экрана — камера</div>
  <div class="overlay" id="menu"><div class="panel"><h1>🦖 DINO ISLAND</h1><p>Исследуй зелёный остров, собирай ресурсы и остерегайся хищника. Управление создано для телефона: джойстик слева, камера справа, действия справа внизу.</p><button id="start">НАЧАТЬ ИГРУ</button></div></div>
@@ -90,7 +90,7 @@ try{
 const renderer=boot.initialize();
 if(!renderer)throw boot.error||new Error('Не удалось создать графику.');
 if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.ready();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
 canvas.addEventListener('webglcontextlost',event=>{
  event.preventDefault();playing=false;
  const error=new Error('Потерян графический контекст. Нажми «Повторить», чтобы перезапустить игру.');
@@ -98,17 +98,17 @@ canvas.addEventListener('webglcontextlost',event=>{
  $('menu').querySelector('h1').textContent='ГРАФИКА ПРИОСТАНОВЛЕНА';
  $('menu').querySelector('p').textContent=error.message;
 });
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,48,115);
-const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,180);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,58,158);
+const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,240);
 const ambient=new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1);scene.add(ambient);
 const sun=new THREE.DirectionalLight(0xffe6bd,1.25);sun.position.set(-25,35,18);scene.add(sun);
 const mat=(c,r=.9)=>new THREE.MeshLambertMaterial({color:c});
 const green=mat(0x5e914b),sand=mat(0xc4b17a),water=mat(0x347f91),wood=mat(0x765033),leaf1=mat(0x2d6c3d),leaf2=mat(0x43864b),rockMat=mat(0x818b85),bushMat=mat(0x477d3e);
-const world=createWorld('dino-island-2026',{radius:110});
-const sea=new THREE.Mesh(new THREE.CircleGeometry(165,64),water);sea.rotation.x=-Math.PI/2;sea.position.y=-4;scene.add(sea);
+const world=createWorld('dino-island-2026',{radius:145});
+const sea=new THREE.Mesh(new THREE.CircleGeometry(215,64),water);sea.rotation.x=-Math.PI/2;sea.position.y=-4;scene.add(sea);
 const beach=new THREE.Mesh(new THREE.CircleGeometry(world.radius,96),sand);beach.rotation.x=-Math.PI/2;beach.position.y=-.3;scene.add(beach);
 function buildTerrain(){
- const segments=112,size=world.radius*2,positions=[],colors=[],indices=[],color=new THREE.Color();
+ const segments=144,size=world.radius*2,positions=[],colors=[],indices=[],color=new THREE.Color();
  const palette={beach:0xc9b27b,meadow:0x6e9b50,forest:0x326b3e,mountains:0x858b88,swamp:0x536d4d,rocky:0x77745e};
  for(let iz=0;iz<=segments;iz++)for(let ix=0;ix<=segments;ix++){
   const x=-world.radius+size*ix/segments,z=-world.radius+size*iz/segments,d=Math.hypot(x,z);
@@ -144,14 +144,14 @@ function addLandmarks(){
 }
 addLandmarks();
 const rand=(a,b)=>a+Math.random()*(b-a),dummy=new THREE.Object3D(),resources=[];
-function point(){let a=rand(0,Math.PI*2),r=14+Math.sqrt(Math.random())*75;return [Math.cos(a)*r,Math.sin(a)*r]}
+function point(){let a=rand(0,Math.PI*2),r=18+Math.sqrt(Math.random())*105;return [Math.cos(a)*r,Math.sin(a)*r]}
 function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],(p[2]||0)+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
-const trees=Array.from({length:170},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
+const trees=Array.from({length:230},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
 const trunks=addInstances(new THREE.CylinderGeometry(.18,.27,2.5,6),wood,trees.map(p=>[p[0],p[1],1.15,p[3],p[4]]),'wood');
 const crowns=addInstances(new THREE.ConeGeometry(1.35,3.2,7),leaf1,trees.map(p=>[p[0],p[1],3,p[3],p[4]]),null);
-const rocks=Array.from({length:72},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
+const rocks=Array.from({length:100},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
 const rockMesh=addInstances(new THREE.DodecahedronGeometry(.65,0),rockMat,rocks,'stone');
-const bushes=Array.from({length:96},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
+const bushes=Array.from({length:140},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
 const bushMesh=addInstances(new THREE.IcosahedronGeometry(.55,0),bushMat,bushes,'fiber');
 const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{
  const p=trees[r.index];
@@ -188,25 +188,27 @@ if(type==='stego'){for(let i=0;i<5;i++){const plate=new THREE.Mesh(new THREE.Con
 if(type==='ptero'){for(const side of [-1,1]){const wing=new THREE.Mesh(new THREE.BoxGeometry(1.65,.08,.48),base);wing.position.set(side*.9,1.65,.1);wing.rotation.z=side*.12;g.add(wing)}}
 if(type==='small')g.scale.setScalar(.58);
 if(type==='raptor')g.scale.set(.78,.82,1.05);
-g.position.set(x,world.sampleHeight(x,z),z);return{mesh:g,head:headG,tail,feet,home:new THREE.Vector3(x,world.sampleHeight(x,z),z),hostile,hp:type==='rex'?7:3,phase:rand(0,8),dead:false,speed:type==='rex'?2.5:hostile?3.2:.7,species:type}}
+g.position.set(x,world.sampleHeight(x,z),z);return{mesh:g,head:headG,tail,feet,home:new THREE.Vector3(x,world.sampleHeight(x,z),z),hostile,hp:type==='rex'?7:3,phase:rand(0,8),dead:false,speed:type==='rex'?2.5:hostile?3.2:.7,species:type,lastTrackAt:0,lastTrackX:x,lastTrackZ:z}}
 const dinos=[
  makeDino(13,-12,'rex'),makeDino(-22,15,'trike'),makeDino(27,19,'herb'),
  makeDino(-42,-18,'raptor'),makeDino(48,32,'herb'),makeDino(-62,52,'stego'),
- makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd')
-];
+ makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd'),makeDino(92,8,'herb'),makeDino(-96,-12,'small'),makeDino(34,96,'raptor')
+ ];
+const tracks=[],trackGeometry=new THREE.CircleGeometry(.13,6),trackMaterial=mat(0x342b20);
+function leaveTracks(d){const group=new THREE.Group();for(const side of [-1,1]){const mark=new THREE.Mesh(trackGeometry,trackMaterial);mark.rotation.x=-Math.PI/2;mark.position.set(side*.16,.025,0);group.add(mark)}group.position.set(d.mesh.position.x,world.sampleHeight(d.mesh.position.x,d.mesh.position.z),d.mesh.position.z);group.rotation.y=d.mesh.rotation.y;group.visible=trackMode;scene.add(group);tracks.push({group,species:d.species,age:0});if(tracks.length>70){const old=tracks.shift();scene.remove(old.group)}}
 const storage=(()=>{try{return window.localStorage}catch{return{getItem:()=>null,setItem:()=>{throw new Error('Хранилище недоступно')}}}})();
 const savedState=loadFromStorage(storage);
 const inventory=createInventory(savedState.ok?savedState.data.inventory:{wood:0,stone:0,fiber:0},40,30);
 const progression=createProgression(savedState.ok?savedState.data.progression:{});
 let hunger=savedState.ok?(savedState.data.player.hunger??100):100,thirst=savedState.ok?(savedState.data.player.thirst??100):100;
-let yaw=0,joyX=0,joyY=0,keys={},running=false,playing=false,buildRotation=0,hp=savedState.ok?(savedState.data.player.hp??100):100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false,structures=savedState.ok?[...savedState.data.structures]:[],buildMode=null,ghost=null,lastSave=0,equipped='',gameStats=savedState.ok?(savedState.data.stats||{gathered:0,crafted:0,built:0,kills:0}):{gathered:0,crafted:0,built:0,kills:0};
+let yaw=0,pitch=.22,cameraDistance=8.5,trackMode=false,joyX=0,joyY=0,keys={},running=false,playing=false,buildRotation=0,hp=savedState.ok?(savedState.data.player.hp??100):100,energy=100,woodCount=0,stoneCount=0,fiberCount=0,lastNotice=0,gameOver=false,structures=savedState.ok?[...savedState.data.structures]:[],buildMode=null,ghost=null,lastSave=0,equipped='',gameStats=savedState.ok?(savedState.data.stats||{gathered:0,crafted:0,built:0,kills:0,tracked:0}):{gathered:0,crafted:0,built:0,kills:0,tracked:0};
 const dinoBlockers=dinos.map(d=>({type:'circle',x:d.mesh.position.x,z:d.mesh.position.z,radius:d.hostile?1.15:.85,creature:d})),collisionBlockers=blockers.concat(dinoBlockers);
 function syncInventory(){woodCount=inventory.items.wood||0;stoneCount=inventory.items.stone||0;fiberCount=inventory.items.fiber||0}
 function say(t){$('notice').textContent=t;$('notice').classList.add('show');lastNotice=2}
 function hud(){syncInventory();$('health').style.width=hp+'%';$('stamina').style.width=energy+'%';$('hunger').style.width=hunger+'%';$('thirst').style.width=thirst+'%';$('levelLabel').textContent='УРОВЕНЬ '+progression.level+' · '+Math.floor(progression.xp)+' XP';$('bag').textContent='🪵 '+woodCount+'　🪨 '+stoneCount+'　🌿 '+fiberCount}
 function nearest(){let found=null,best=3.4;for(const r of resources){if(r.used)continue;let d=Math.hypot(r.x-player.position.x,r.z-player.position.z);if(d<best){best=d;found=r}}return found}
 function hideInstance(r){r.used=true;dummy.position.set(0,-1000,0);dummy.scale.setScalar(0);dummy.updateMatrix();r.mesh.setMatrixAt(r.index,dummy.matrix);r.mesh.instanceMatrix.needsUpdate=true;for(const linked of r.linked){linked.mesh.setMatrixAt(linked.index,dummy.matrix);linked.mesh.instanceMatrix.needsUpdate=true}}
-function resetWorld(){resetResourceRecords(resources);for(const d of dinos){d.dead=false;d.hp=d.species==='rex'?7:3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}for(const s of structures){if(s.mesh)scene.remove(s.mesh);if(s.obstacle){const i=blockers.indexOf(s.obstacle);if(i>=0)blockers.splice(i,1);const j=collisionBlockers.indexOf(s.obstacle);if(j>=0)collisionBlockers.splice(j,1)}}structures=[];player.position.set(0,world.sampleHeight(0,0),0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;hunger=thirst=100;inventory.items={wood:0,stone:0,fiber:0};Object.assign(progression,createProgression());gameStats={gathered:0,crafted:0,built:0,kills:0};equipped='';buildMode=null;if(ghost){scene.remove(ghost);ghost=null}hud()}
+function resetWorld(){resetResourceRecords(resources);for(const track of tracks)scene.remove(track.group);tracks.length=0;trackMode=false;pitch=.22;cameraDistance=8.5;for(const d of dinos){d.lastTrackAt=0;d.lastTrackX=d.home.x;d.lastTrackZ=d.home.z;d.dead=false;d.hp=d.species==='rex'?7:3;d.mesh.position.copy(d.home);d.mesh.rotation.set(0,0,0);if(!d.mesh.parent)scene.add(d.mesh)}for(const s of structures){if(s.mesh)scene.remove(s.mesh);if(s.obstacle){const i=blockers.indexOf(s.obstacle);if(i>=0)blockers.splice(i,1);const j=collisionBlockers.indexOf(s.obstacle);if(j>=0)collisionBlockers.splice(j,1)}}structures=[];player.position.set(0,world.sampleHeight(0,0),0);player.rotation.set(0,0,0);yaw=0;hp=100;energy=100;hunger=thirst=100;inventory.items={wood:0,stone:0,fiber:0};Object.assign(progression,createProgression());gameStats={gathered:0,crafted:0,built:0,kills:0,tracked:0};equipped='';buildMode=null;if(ghost){scene.remove(ghost);ghost=null}hud()}
 const RECIPES=[
  {id:'axe',name:'Каменный топор',ingredients:{wood:3,stone:2},output:{id:'axe',count:1}},
  {id:'spear',name:'Копьё',ingredients:{wood:2,stone:1,fiber:1},output:{id:'spear',count:1}},
@@ -267,7 +269,7 @@ function openPanel(kind){clearInput();
  }else if(kind==='skills'){
   const skills=[['survival','Выживание','Больше здоровья и выносливости'],['gathering','Собиратель','Больше ресурсов и прочность инструментов'],['combat','Боец','Урон и сопротивление'],['builder','Строитель','Дешевле и прочнее постройки']];
   panelBody.innerHTML='<p>Уровень '+progression.level+' · '+Math.floor(progression.xp)+' XP · очков навыков: '+progression.skillPoints+'</p>'+skills.map(([id,name,desc])=>'<div class="game-row"><span><b>'+name+'</b><br><small>'+desc+' · уровень '+(progression.skills[id]||0)+'/5</small></span><button data-action="skill" data-id="'+id+'">Улучшить</button></div>').join('');
- }else if(kind==='journal'){panelBody.innerHTML='<p>Задания острова. Прогресс сохраняется.</p>'+[['gathered','Собрать 10 ресурсов',10],['crafted','Создать предмет',1],['built','Построить сооружение',1],['kills','Победить динозавра',1]].map(([id,name,target])=>'<div class="game-row"><span>'+name+'</span><b>'+(gameStats[id]||0)+' / '+target+'</b></div>').join('')+'<p>Награды за первые шаги: опыт и очки навыков.</p>';}else if(kind==='map'){
+ }else if(kind==='journal'){panelBody.innerHTML='<p>Задания острова. Прогресс сохраняется.</p>'+[['gathered','Собрать 10 ресурсов',10],['crafted','Создать предмет',1],['built','Построить сооружение',1],['kills','Победить динозавра',1],['tracked','Изучить 5 следов',5]].map(([id,name,target])=>'<div class="game-row"><span>'+name+'</span><b>'+(gameStats[id]||0)+' / '+target+'</b></div>').join('')+'<p>Награды за первые шаги: опыт и очки навыков.</p>';}else if(kind==='map'){
   const biome=world.sampleBiome(player.position.x,player.position.z);
   panelBody.innerHTML='<p>Ты находишься в биоме: <b>'+biome+'</b></p><p>Координаты: X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z)+'</p><p>Остров: радиус '+world.radius+' м. Зоны: пляж, луг, лес, болото, скалы и горы.</p><p>Ориентиры и секретные места будут открываться по мере исследования.</p>';
  }
@@ -290,10 +292,11 @@ panelBody.addEventListener('click',event=>{
 $('gamePanel').addEventListener('pointerdown',event=>event.stopPropagation());
 if(savedState.ok){player.position.set(savedState.data.player.x||0,world.sampleHeight(savedState.data.player.x||0,savedState.data.player.z||0),savedState.data.player.z||0);hud()}
 
-$('collect').onclick=()=>{let r=nearest();if(!r){say('Подойди ближе к дереву, камню или кусту');return}const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber',amount=Math.ceil((r.kind==='stone'?1:2)*(equipped==='axe'&&inventory.items.axe?progression.modifiers.gatherYield*1.5:progression.modifiers.gatherYield)),preview=createInventory({...inventory.items},inventory.maxSlots,inventory.stackLimit),added=addItem(preview,item,amount);if(added.remaining){say('Не хватает места в инвентаре');return}inventory.items=preview.items;hideInstance(r);addExperience(progression,4);gameStats.gathered+=added.added;hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
+$('collect').onclick=()=>{let r=nearest();if(!r){if(trackMode){const index=tracks.findIndex(t=>t.group.visible&&Math.hypot(t.group.position.x-player.position.x,t.group.position.z-player.position.z)<2.8);if(index>=0){const track=tracks.splice(index,1)[0];scene.remove(track.group);addExperience(progression,6);gameStats.tracked=(gameStats.tracked||0)+1;hud();saveGame(true);const names={rex:'тираннозавра',raptor:'раптора',trike:'трицератопса',stego:'стегозавра',ptero:'птерозавра',herd:'травоядного',herb:'травоядного',small:'маленького динозавра'};say('Ты изучил след '+(names[track.species]||'динозавра')+' · +6 XP');return}}say('Подойди ближе к дереву, камню, кусту или следу');return}const item=r.kind==='wood'?'wood':r.kind==='stone'?'stone':'fiber',amount=Math.ceil((r.kind==='stone'?1:2)*(equipped==='axe'&&inventory.items.axe?progression.modifiers.gatherYield*1.5:progression.modifiers.gatherYield)),preview=createInventory({...inventory.items},inventory.maxSlots,inventory.stackLimit),added=addItem(preview,item,amount);if(added.remaining){say('Не хватает места в инвентаре');return}inventory.items=preview.items;hideInstance(r);addExperience(progression,4);gameStats.gathered+=added.added;hud();say(r.kind==='wood'?'Собрано: древесина':r.kind==='stone'?'Собран: камень':'Собрано: волокно')};
 $('hit').onclick=()=>{let d=dinos.filter(v=>!v.dead&&v.mesh.position.distanceTo(player.position)<4).sort((a,b)=>a.mesh.position.distanceTo(player.position)-b.mesh.position.distanceTo(player.position))[0];if(!d){say('Подойди ближе к существу');return}d.hp-=equipped==='spear'&&inventory.items.spear?Math.ceil(progression.modifiers.meleeDamage*2):Math.ceil(progression.modifiers.meleeDamage);d.mesh.rotation.y+=.18;if(d.hp<=0){d.dead=true;scene.remove(d.mesh);if(d.hostile)addItem(inventory,'meat',2);else addItem(inventory,'hide',1);addExperience(progression,20);gameStats.kills++;hud();say('Существо повержено! Получена добыча')}else{if(!d.hostile)d.fleeUntil=5;say('Попадание! Ещё '+d.hp)}};
 $('run').onpointerdown=()=>running=true;$('run').onpointerup=$('run').onpointercancel=()=>running=false;
-$('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);say('Камера направлена на хищника')}};
+$('center').onclick=()=>{const d=dinos.find(v=>v.hostile&&!v.dead);if(d){yaw=Math.atan2(d.mesh.position.x-player.position.x,d.mesh.position.z-player.position.z);pitch=.22;cameraDistance=8.5;say('Камера направлена на хищника')}};
+$('track').onclick=()=>{trackMode=!trackMode;for(const track of tracks)track.group.visible=trackMode;say(trackMode?'Следы видны: иди по отпечаткам и нажми «Собрать» рядом с ними':'Режим выслеживания выключен')};
 startGameAction=()=>{if(gameOver){resetWorld();gameOver=false}$('menu').classList.add('hidden');playing=true;lastNotice=0};
 
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')$('collect').click();if(e.code==='Space')$('hit').click();if(e.code==='ShiftLeft'||e.code==='ShiftRight')running=true});
@@ -304,15 +307,19 @@ stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCap
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)setJoy(e)});
 function resetJoy(){stickId=null;joyX=joyY=0;knob.style.transform='translate(0,0)'}
 stick.addEventListener('pointerup',resetJoy);stick.addEventListener('pointercancel',resetJoy);
-let lookId=null,lastLookX=0;canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.42){lookId=e.pointerId;lastLookX=e.clientX;canvas.setPointerCapture(e.pointerId)}});
-canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){yaw+=(e.clientX-lastLookX)*.005;lastLookX=e.clientX}});
-function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
+const lookPointers=new Map();let lookId=null,lastLookX=0,lastLookY=0,pinchDistance=0;
+canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.42){canvas.setPointerCapture(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size===1){lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY}else if(lookPointers.size===2){const p=[...lookPointers.values()];pinchDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);lookId=null}}});
+canvas.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const p=[...lookPointers.values()],distance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDistance>0)cameraDistance=THREE.MathUtils.clamp(cameraDistance+(pinchDistance-distance)*.035,4.5,13);pinchDistance=distance;return}if(lookId===e.pointerId){yaw+=(e.clientX-lastLookX)*.005;pitch=THREE.MathUtils.clamp(pitch+(e.clientY-lastLookY)*.004,-.18,1.18);lastLookX=e.clientX;lastLookY=e.clientY}});
+canvas.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,4.5,13)},{passive:true});
+function stopLook(e){lookPointers.delete(e.pointerId);if(lookPointers.size===1){const [id,p]=lookPointers.entries().next().value;lookId=id;lastLookX=p.x;lastLookY=p.y}else if(lookPointers.size===0){lookId=null;pinchDistance=0}}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
+let qualityTimer=0,qualitySamples=0,qualityTotal=0,qualityLevel=renderer.getPixelRatio();
+function adaptRenderQuality(frameSeconds){qualityTimer+=frameSeconds;qualitySamples++;qualityTotal+=frameSeconds;if(qualityTimer<2)return;const average=qualityTotal/qualitySamples;let next=qualityLevel;if(average>.027)next=Math.max(.75,qualityLevel-.1);else if(average<.018)next=Math.min(Math.min(window.devicePixelRatio||1,1.1),qualityLevel+.05);if(Math.abs(next-qualityLevel)>.001){qualityLevel=next;renderer.setPixelRatio(qualityLevel);renderer.setSize(innerWidth,innerHeight)}qualityTimer=0;qualitySamples=0;qualityTotal=0;}
 function clearInput(){running=false;keys={};resetJoy()}
 addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput()});
-function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
+function tick(){requestAnimationFrame(tick);const frameSeconds=clock.getDelta(),dt=Math.min(frameSeconds,.04),t=clock.elapsedTime;adaptRenderQuality(frameSeconds);
 if(playing&&$('gamePanel').classList.contains('hidden')){hunger=Math.max(0,hunger-.035*dt);thirst=Math.max(0,thirst-.055*dt);if(hunger<=0||thirst<=0)hp=Math.max(0,hp-1.8*dt);let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
 const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
 for(let i=0;i<dinos.length;i++){dinoBlockers[i].x=dinos[i].mesh.position.x;dinoBlockers[i].z=dinos[i].mesh.position.z;dinoBlockers[i].type=dinos[i].dead?'none':'circle';dinoBlockers[i].radius=dinos[i].hostile?1.15:.85}
@@ -324,9 +331,10 @@ if(slope>1.05){player.position.x=oldX;player.position.z=oldZ}
 player.position.y=world.sampleHeight(player.position.x,player.position.z);
 if(moving){const targetYaw=Math.atan2(dx,dz);let diff=Math.atan2(Math.sin(targetYaw-player.rotation.y),Math.cos(targetYaw-player.rotation.y));player.rotation.y+=diff*Math.min(1,dt*10)}
 const walk=Math.sin(t*(fast?13:8));legs[0].rotation.x=walk*(moving?.62:0);legs[1].rotation.x=-walk*(moving?.62:0);arms[0].rotation.x=-walk*(moving?.35:0);arms[1].rotation.x=walk*(moving?.35:0);torso.position.y=1.05+(moving?Math.abs(walk)*.035:0);
-for(const d of dinos){if(d.dead)continue;d.phase+=dt;const dist=d.mesh.position.distanceTo(player.position);if(d.hostile&&dist<24){const dir=player.position.clone().sub(d.mesh.position).normalize();const chase=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*dt,z:dir.z*d.speed*dt},.85,blockers,{radius:world.innerRadius});d.mesh.position.x=chase.position.x;d.mesh.position.z=chase.position.z;d.mesh.lookAt(player.position.x,d.mesh.position.y,player.position.z);if(dist<2.05)hp=Math.max(0,hp-(d.species==='rex'?18:11)*dt)}else if(!d.hostile&&dist<8){const dir=d.mesh.position.clone().sub(player.position).normalize();const flee=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*2*dt,z:dir.z*d.speed*2*dt},.7,blockers,{radius:world.innerRadius});d.mesh.position.x=flee.position.x;d.mesh.position.z=flee.position.z;d.mesh.lookAt(d.mesh.position.x,d.mesh.position.y,d.mesh.position.z+dir.z)}else{const tx=d.home.x+Math.sin(d.phase*.32)*3.2,tz=d.home.z+Math.cos(d.phase*.27)*3.2,dir=new THREE.Vector3(tx-d.mesh.position.x,0,tz-d.mesh.position.z).normalize();const wander=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*dt,z:dir.z*d.speed*dt},.7,blockers,{radius:world.innerRadius});d.mesh.position.x=wander.position.x;d.mesh.position.z=wander.position.z;d.mesh.rotation.y=Math.atan2(dir.x,dir.z)}d.mesh.position.y=world.sampleHeight(d.mesh.position.x,d.mesh.position.z)+(d.species==='ptero'?3+Math.sin(d.phase*2)*.35:0);const step=Math.sin(d.phase*4)*.28;d.feet[0].rotation.x=step;d.feet[1].rotation.x=-step;d.tail.rotation.z=Math.sin(d.phase*1.6)*.12;d.head.rotation.x=Math.sin(d.phase*1.4)*.025}
+for(const d of dinos){if(d.dead)continue;d.phase+=dt;const dist=d.mesh.position.distanceTo(player.position);if(d.hostile&&dist<24){const dir=player.position.clone().sub(d.mesh.position).normalize();const chase=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*dt,z:dir.z*d.speed*dt},.85,blockers,{radius:world.innerRadius});d.mesh.position.x=chase.position.x;d.mesh.position.z=chase.position.z;d.mesh.lookAt(player.position.x,d.mesh.position.y,player.position.z);if(dist<2.05)hp=Math.max(0,hp-(d.species==='rex'?18:11)*dt)}else if(!d.hostile&&dist<8){const dir=d.mesh.position.clone().sub(player.position).normalize();const flee=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*2*dt,z:dir.z*d.speed*2*dt},.7,blockers,{radius:world.innerRadius});d.mesh.position.x=flee.position.x;d.mesh.position.z=flee.position.z;d.mesh.lookAt(d.mesh.position.x,d.mesh.position.y,d.mesh.position.z+dir.z)}else{const tx=d.home.x+Math.sin(d.phase*.32)*3.2,tz=d.home.z+Math.cos(d.phase*.27)*3.2,dir=new THREE.Vector3(tx-d.mesh.position.x,0,tz-d.mesh.position.z).normalize();const wander=resolveCircleMovement({x:d.mesh.position.x,z:d.mesh.position.z},{x:dir.x*d.speed*dt,z:dir.z*d.speed*dt},.7,blockers,{radius:world.innerRadius});d.mesh.position.x=wander.position.x;d.mesh.position.z=wander.position.z;d.mesh.rotation.y=Math.atan2(dir.x,dir.z)}d.mesh.position.y=world.sampleHeight(d.mesh.position.x,d.mesh.position.z)+(d.species==='ptero'?3+Math.sin(d.phase*2)*.35:0);const step=Math.sin(d.phase*4)*.28;d.feet[0].rotation.x=step;d.feet[1].rotation.x=-step;d.tail.rotation.z=Math.sin(d.phase*1.6)*.12;d.head.rotation.x=Math.sin(d.phase*1.4)*.025;if(Math.hypot(d.mesh.position.x-d.lastTrackX,d.mesh.position.z-d.lastTrackZ)>1.1&&d.phase-d.lastTrackAt>1.8){leaveTracks(d);d.lastTrackX=d.mesh.position.x;d.lastTrackZ=d.mesh.position.z;d.lastTrackAt=d.phase}}
+for(let i=tracks.length-1;i>=0;i--){tracks[i].age+=dt;if(tracks[i].age>50){scene.remove(tracks[i].group);tracks.splice(i,1)}}
 const cycle=(t%240)/240,daylight=.55+.45*Math.sin(cycle*Math.PI*2+Math.PI/2);sun.intensity=.25+daylight*1.05;ambient.intensity=.55+daylight*1.55;sun.position.set(Math.cos(cycle*Math.PI*2)*40,12+daylight*35,Math.sin(cycle*Math.PI*2)*35);scene.background.setRGB(.035+.45*daylight,.075+.55*daylight,.12+.48*daylight);scene.fog.color.copy(scene.background);
-camTarget.set(player.position.x-Math.sin(yaw)*8.5,player.position.y+5.0,player.position.z-Math.cos(yaw)*8.5);camera.position.lerp(camTarget,1-Math.exp(-dt*7));lookTarget.set(player.position.x,player.position.y+1.25,player.position.z);camera.lookAt(lookTarget);
+const orbitRadius=Math.cos(pitch)*cameraDistance;camTarget.set(player.position.x-Math.sin(yaw)*orbitRadius,player.position.y+1.25+Math.sin(pitch)*cameraDistance,player.position.z-Math.cos(yaw)*orbitRadius);camera.position.lerp(camTarget,1-Math.exp(-dt*7));lookTarget.set(player.position.x,player.position.y+1.25,player.position.z);camera.lookAt(lookTarget);
 if(buildMode&&ghost){const bx=player.position.x+Math.sin(yaw)*3.2,bz=player.position.z+Math.cos(yaw)*3.2;ghost.position.set(bx,world.sampleHeight(bx,bz)+.1,bz);ghost.rotation.y=buildRotation}
 if(t-lastSave>30){saveGame(true);lastSave=t}
 if(lastNotice>0){lastNotice-=dt;if(lastNotice<=0)$('notice').classList.remove('show')}hud();
