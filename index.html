@@ -164,7 +164,7 @@ const blockers=[];
 for(const p of trees)blockers.push({type:'circle',x:p[0],z:p[1],radius:.52*p[4]});
 for(const p of rocks)blockers.push({type:'circle',x:p[0],z:p[1],radius:.62*p[4]});
 for(const p of bushes)blockers.push({type:'circle',x:p[0],z:p[1],radius:.34*p[4]});
-const player=new THREE.Group();scene.add(player);
+const player=new THREE.Group();player.position.set(0,world.sampleHeight(0,0),0);scene.add(player);
 const shirt=mat(0x3b83a5),pants=mat(0x34404b),skin=mat(0xc99370),dark=mat(0x202b29);
 function limb(parent,material,length,radius,x,y,z){const pivot=new THREE.Group();pivot.position.set(x,y,z);const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length*.48,2,5),material);mesh.position.y=-length*.42;pivot.add(mesh);parent.add(pivot);return pivot}
 const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.58,3,7),shirt);torso.position.y=1.05;player.add(torso);
