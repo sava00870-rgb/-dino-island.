@@ -2,7 +2,7 @@
 'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
-let W=0,H=0,dpr=1,last=0,elapsed=0,running=false,paused=false,leveling=false,dead=false,target=null,shopOwned=JSON.parse(localStorage.getItem('sl_owned')||'[]'),gold=Number(localStorage.getItem('sl_gold')||0),sfxVolume=Number(localStorage.getItem('sl_sfx')||.45),musicVolume=Number(localStorage.getItem('sl_music')||.2),audio=null;
+let W=0,H=0,dpr=1,last=0,elapsed=0,running=false,paused=false,leveling=false,dead=false,target=null,shopOwned=JSON.parse(localStorage.getItem('sl_owned')||'[]'),gold=Number(localStorage.getItem('sl_gold')||0),sfxVolume=Number(localStorage.getItem('sl_sfx')||.45),musicVolume=Number(localStorage.getItem('sl_music')||.2),audio=null,musicGain=null,musicOsc=[];
 const keys={},mouse={x:0,y:0,down:false},joy={x:0,y:0,active:false};
 let player,enemies=[],orbs=[],particles=[],texts=[],obstacles=[],kills=0,spawnClock=0,boss=null,shake=0;
 const upgrades=[
@@ -16,6 +16,7 @@ const upgrades=[
 {name:'Осколок ярости',desc:'Шанс критического удара +10%.',apply:p=>p.crit+=.1}
 ];
 function sound(freq=220,duration=.08,type='sine',volume=.12){try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(35,freq*.55),audio.currentTime+duration);g.gain.setValueAtTime(volume*sfxVolume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}catch(e){}}
+function startMusic(){try{if(!audio||musicOsc.length)return;musicGain=audio.createGain();musicGain.gain.value=musicVolume*.035;musicGain.connect(audio.destination);for(let hz of [55,82.4,110,164.8]){let o=audio.createOscillator();o.type='sine';o.frequency.value=hz;o.connect(musicGain);o.start();musicOsc.push(o)}}catch(e){}}
 function save(){localStorage.setItem('sl_owned',JSON.stringify(shopOwned));localStorage.setItem('sl_gold',String(gold));localStorage.setItem('sl_sfx',String(sfxVolume));localStorage.setItem('sl_music',String(musicVolume))}
 function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
@@ -66,6 +67,6 @@ const stick=$('stick'),nub=$('nub');function joyMove(e){let r=stick.getBoundingC
 $('shopOpen').onclick=()=>openShop();$('shopQuick').onclick=()=>openShop();$('shopClose').onclick=()=>{$('shop').classList.add('hidden');paused=false};
 $('settingsOpen').onclick=()=>{$('settings').classList.remove('hidden')};$('settingsClose').onclick=()=>$('settings').classList.add('hidden');
 $('statsOpen').onclick=()=>{$('statsText').textContent='Всего золота: '+gold+' · Убийств за забег: '+kills+' · Уровень: '+player.level;$('stats').classList.remove('hidden')};$('statsClose').onclick=()=>$('stats').classList.add('hidden');
-$('sfxVolume').value=sfxVolume;$('musicVolume').value=musicVolume;$('sfxVolume').oninput=e=>{sfxVolume=+e.target.value;save()};$('musicVolume').oninput=e=>{musicVolume=+e.target.value;save()};
+$('sfxVolume').value=sfxVolume;$('musicVolume').value=musicVolume;$('sfxVolume').oninput=e=>{sfxVolume=+e.target.value;save()};$('musicVolume').oninput=e=>{musicVolume=+e.target.value;if(musicGain)musicGain.gain.setTargetAtTime(musicVolume*.035,audio.currentTime,.08);save()};
 reset();draw();
 })();
