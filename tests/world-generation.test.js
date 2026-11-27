@@ -27,3 +27,11 @@ test('land boundary excludes deep ocean and includes safe center', () => {
  assert.equal(world.isLand(150,0),false);
  assert.equal(world.isLand(0,150),false);
 });
+
+test('expanded island supports a larger explorable radius', () => {
+ const world=createWorld('expanded-island',{radius:145});
+ assert.equal(world.radius,145);
+ assert.ok(world.innerRadius>125);
+ assert.equal(world.isLand(120,0),true);
+ assert.equal(world.isLand(150,0),false);
+});
