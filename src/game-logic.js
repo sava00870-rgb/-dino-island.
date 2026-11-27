@@ -1,8 +1,8 @@
 export function movementVector(yaw, forward, strafe) {
-  // Camera-relative screen-right is (+cos(yaw), 0, +sin(yaw)); this keeps A/left and D/right consistent at every yaw.
+  // Camera-relative screen-right is (+cos(yaw), 0, -sin(yaw)); this keeps A/left and D/right consistent at every yaw.
   // Positive strafe must always move to the right side of the screen.
   let x = Math.sin(yaw) * forward + Math.cos(yaw) * strafe;
-  let z = Math.cos(yaw) * forward + Math.sin(yaw) * strafe;
+  let z = Math.cos(yaw) * forward - Math.sin(yaw) * strafe;
   const length = Math.hypot(x, z);
   if (length > 1) {
     x /= length;
