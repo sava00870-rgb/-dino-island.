@@ -16,7 +16,7 @@ test('forward follows camera heading at cardinal yaw angles', () => {
 
 test('strafe follows camera right vector at cardinal yaw angles', () => {
   for (const [yaw, expectedX, expectedZ] of [
-    [0, 1, 0], [Math.PI / 2, 0, -1], [Math.PI, -1, 0], [-Math.PI / 2, 0, 1]
+    [0, -1, 0], [Math.PI / 2, 0, 1], [Math.PI, 1, 0], [-Math.PI / 2, 0, -1]
   ]) {
     const v = movementVector(yaw, 0, 1);
     close(v.x, expectedX);
