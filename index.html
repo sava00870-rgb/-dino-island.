@@ -307,10 +307,11 @@ stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCap
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)setJoy(e)});
 function resetJoy(){stickId=null;joyX=joyY=0;knob.style.transform='translate(0,0)'}
 stick.addEventListener('pointerup',resetJoy);stick.addEventListener('pointercancel',resetJoy);
-let lookId=null,lastLookX=0,lastLookY=0;canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.42){lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;canvas.setPointerCapture(e.pointerId)}});
-canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){yaw+=(e.clientX-lastLookX)*.005;pitch=THREE.MathUtils.clamp(pitch+(e.clientY-lastLookY)*.004,-.18,1.18);lastLookX=e.clientX;lastLookY=e.clientY}});
+const lookPointers=new Map();let lookId=null,lastLookX=0,lastLookY=0,pinchDistance=0;
+canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.42){canvas.setPointerCapture(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size===1){lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY}else if(lookPointers.size===2){const p=[...lookPointers.values()];pinchDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);lookId=null}}});
+canvas.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const p=[...lookPointers.values()],distance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDistance>0)cameraDistance=THREE.MathUtils.clamp(cameraDistance+(pinchDistance-distance)*.035,4.5,13);pinchDistance=distance;return}if(lookId===e.pointerId){yaw+=(e.clientX-lastLookX)*.005;pitch=THREE.MathUtils.clamp(pitch+(e.clientY-lastLookY)*.004,-.18,1.18);lastLookX=e.clientX;lastLookY=e.clientY}});
 canvas.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,4.5,13)},{passive:true});
-function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
+function stopLook(e){lookPointers.delete(e.pointerId);if(lookPointers.size===1){const [id,p]=lookPointers.entries().next().value;lookId=id;lastLookX=p.x;lastLookY=p.y}else if(lookPointers.size===0){lookId=null;pinchDistance=0}}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
 let qualityTimer=0,qualitySamples=0,qualityTotal=0,qualityLevel=renderer.getPixelRatio();
