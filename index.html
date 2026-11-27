@@ -90,7 +90,7 @@ try{
 const renderer=boot.initialize();
 if(!renderer)throw boot.error||new Error('Не удалось создать графику.');
 if(window.__dinoIslandBootFallback)window.__dinoIslandBootFallback.ready();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
 canvas.addEventListener('webglcontextlost',event=>{
  event.preventDefault();playing=false;
  const error=new Error('Потерян графический контекст. Нажми «Повторить», чтобы перезапустить игру.');
@@ -98,17 +98,17 @@ canvas.addEventListener('webglcontextlost',event=>{
  $('menu').querySelector('h1').textContent='ГРАФИКА ПРИОСТАНОВЛЕНА';
  $('menu').querySelector('p').textContent=error.message;
 });
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,48,115);
-const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,180);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8cf);scene.fog=new THREE.Fog(0x9bc8cf,58,158);
+const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,240);
 const ambient=new THREE.HemisphereLight(0xe7f8ff,0x43583a,2.1);scene.add(ambient);
 const sun=new THREE.DirectionalLight(0xffe6bd,1.25);sun.position.set(-25,35,18);scene.add(sun);
 const mat=(c,r=.9)=>new THREE.MeshLambertMaterial({color:c});
 const green=mat(0x5e914b),sand=mat(0xc4b17a),water=mat(0x347f91),wood=mat(0x765033),leaf1=mat(0x2d6c3d),leaf2=mat(0x43864b),rockMat=mat(0x818b85),bushMat=mat(0x477d3e);
-const world=createWorld('dino-island-2026',{radius:110});
-const sea=new THREE.Mesh(new THREE.CircleGeometry(165,64),water);sea.rotation.x=-Math.PI/2;sea.position.y=-4;scene.add(sea);
+const world=createWorld('dino-island-2026',{radius:145});
+const sea=new THREE.Mesh(new THREE.CircleGeometry(215,64),water);sea.rotation.x=-Math.PI/2;sea.position.y=-4;scene.add(sea);
 const beach=new THREE.Mesh(new THREE.CircleGeometry(world.radius,96),sand);beach.rotation.x=-Math.PI/2;beach.position.y=-.3;scene.add(beach);
 function buildTerrain(){
- const segments=112,size=world.radius*2,positions=[],colors=[],indices=[],color=new THREE.Color();
+ const segments=144,size=world.radius*2,positions=[],colors=[],indices=[],color=new THREE.Color();
  const palette={beach:0xc9b27b,meadow:0x6e9b50,forest:0x326b3e,mountains:0x858b88,swamp:0x536d4d,rocky:0x77745e};
  for(let iz=0;iz<=segments;iz++)for(let ix=0;ix<=segments;ix++){
   const x=-world.radius+size*ix/segments,z=-world.radius+size*iz/segments,d=Math.hypot(x,z);
@@ -144,14 +144,14 @@ function addLandmarks(){
 }
 addLandmarks();
 const rand=(a,b)=>a+Math.random()*(b-a),dummy=new THREE.Object3D(),resources=[];
-function point(){let a=rand(0,Math.PI*2),r=14+Math.sqrt(Math.random())*75;return [Math.cos(a)*r,Math.sin(a)*r]}
+function point(){let a=rand(0,Math.PI*2),r=18+Math.sqrt(Math.random())*105;return [Math.cos(a)*r,Math.sin(a)*r]}
 function addInstances(geo,material,items,kind){const mesh=new THREE.InstancedMesh(geo,material,items.length);mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);items.forEach((p,i)=>{dummy.position.set(p[0],(p[2]||0)+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3]||0;dummy.scale.setScalar(p[4]||1);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(kind)resources.push(Object.assign(createResourceRecord({mesh,index:i,original:dummy.matrix.clone()}),{x:p[0],z:p[1],kind}))});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);return mesh}
-const trees=Array.from({length:170},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
+const trees=Array.from({length:230},()=>{let p=point();return[p[0],p[1],0,rand(0,6),rand(.75,1.35)]});
 const trunks=addInstances(new THREE.CylinderGeometry(.18,.27,2.5,6),wood,trees.map(p=>[p[0],p[1],1.15,p[3],p[4]]),'wood');
 const crowns=addInstances(new THREE.ConeGeometry(1.35,3.2,7),leaf1,trees.map(p=>[p[0],p[1],3,p[3],p[4]]),null);
-const rocks=Array.from({length:72},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
+const rocks=Array.from({length:100},()=>{let p=point();return[p[0],p[1],.38,rand(0,6),rand(.65,1.35)]});
 const rockMesh=addInstances(new THREE.DodecahedronGeometry(.65,0),rockMat,rocks,'stone');
-const bushes=Array.from({length:96},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
+const bushes=Array.from({length:140},()=>{let p=point();return[p[0],p[1],.35,rand(0,6),rand(.7,1.2)]});
 const bushMesh=addInstances(new THREE.IcosahedronGeometry(.55,0),bushMat,bushes,'fiber');
 const foliage=new THREE.InstancedMesh(new THREE.ConeGeometry(1.2,2.5,6),leaf2,trees.length);trees.forEach((p,i)=>{dummy.position.set(p[0]+.18,2.65+world.sampleHeight(p[0],p[1]),p[1]);dummy.rotation.y=p[3];dummy.scale.setScalar(p[4]*.72);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix)});foliage.instanceMatrix.needsUpdate=true;scene.add(foliage);resources.filter(r=>r.kind==='wood').forEach(r=>{
  const p=trees[r.index];
@@ -192,7 +192,7 @@ g.position.set(x,world.sampleHeight(x,z),z);return{mesh:g,head:headG,tail,feet,h
 const dinos=[
  makeDino(13,-12,'rex'),makeDino(-22,15,'trike'),makeDino(27,19,'herb'),
  makeDino(-42,-18,'raptor'),makeDino(48,32,'herb'),makeDino(-62,52,'stego'),
- makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd')
+ makeDino(68,-42,'small'),makeDino(8,72,'ptero'),makeDino(-70,-38,'herd'),makeDino(92,8,'herb'),makeDino(-96,-12,'small'),makeDino(34,96,'raptor')
 ];
 const storage=(()=>{try{return window.localStorage}catch{return{getItem:()=>null,setItem:()=>{throw new Error('Хранилище недоступно')}}}})();
 const savedState=loadFromStorage(storage);
@@ -309,10 +309,12 @@ canvas.addEventListener('pointermove',e=>{if(lookId===e.pointerId){yaw+=(e.clien
 function stopLook(e){if(e.pointerId===lookId)lookId=null}canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 const clock=new THREE.Clock(),camTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();
+let qualityTimer=0,qualitySamples=0,qualityTotal=0,qualityLevel=renderer.getPixelRatio();
+function adaptRenderQuality(frameSeconds){qualityTimer+=frameSeconds;qualitySamples++;qualityTotal+=frameSeconds;if(qualityTimer<2)return;const average=qualityTotal/qualitySamples;let next=qualityLevel;if(average>.027)next=Math.max(.75,qualityLevel-.1);else if(average<.018)next=Math.min(Math.min(window.devicePixelRatio||1,1.1),qualityLevel+.05);if(Math.abs(next-qualityLevel)>.001){qualityLevel=next;renderer.setPixelRatio(qualityLevel);renderer.setSize(innerWidth,innerHeight)}qualityTimer=0;qualitySamples=0;qualityTotal=0;}
 function clearInput(){running=false;keys={};resetJoy()}
 addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput()});
-function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
+function tick(){requestAnimationFrame(tick);const frameSeconds=clock.getDelta(),dt=Math.min(frameSeconds,.04),t=clock.elapsedTime;adaptRenderQuality(frameSeconds);
 if(playing&&$('gamePanel').classList.contains('hidden')){hunger=Math.max(0,hunger-.035*dt);thirst=Math.max(0,thirst-.055*dt);if(hunger<=0||thirst<=0)hp=Math.max(0,hp-1.8*dt);let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-joyY;let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joyX;let len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len}const moving=len>.12,fast=running&&energy>1&&moving,speed=fast?9.0:5.0;energy=fast?Math.max(0,energy-24*dt):Math.min(100,energy+14*dt);
 const movement=movementVector(yaw,forward,side);const dx=movement.x*speed*dt,dz=movement.z*speed*dt;
 for(let i=0;i<dinos.length;i++){dinoBlockers[i].x=dinos[i].mesh.position.x;dinoBlockers[i].z=dinos[i].mesh.position.z;dinoBlockers[i].type=dinos[i].dead?'none':'circle';dinoBlockers[i].radius=dinos[i].hostile?1.15:.85}
