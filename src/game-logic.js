@@ -1,7 +1,8 @@
 export function movementVector(yaw, forward, strafe) {
-  // Camera is behind the player: its local screen-right axis is (-cos(yaw), 0, sin(yaw)).
-  let x = Math.sin(yaw) * forward - Math.cos(yaw) * strafe;
-  let z = Math.cos(yaw) * forward + Math.sin(yaw) * strafe;
+  // Camera is behind the player: screen-right is (+cos(yaw), 0, -sin(yaw)).
+  // Positive strafe must always move to the right side of the screen.
+  let x = Math.sin(yaw) * forward + Math.cos(yaw) * strafe;
+  let z = Math.cos(yaw) * forward - Math.sin(yaw) * strafe;
   const length = Math.hypot(x, z);
   if (length > 1) {
     x /= length;
