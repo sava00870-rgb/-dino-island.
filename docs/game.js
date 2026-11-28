@@ -124,7 +124,7 @@ for(let p of particles){ctx.globalAlpha=Math.max(0,p.life/.7);ctx.fillStyle=p.co
 for(let t of texts){ctx.globalAlpha=Math.min(1,t.life*2);ctx.fillStyle=t.color;ctx.font='800 13px Manrope';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(t.t,t.x+ox,t.y+oy)}ctx.shadowBlur=0;ctx.globalAlpha=1;
 const biomeNames=['ЗАБЫТЫЕ РУИНЫ','ЛЕС ШЁПОТОВ','ПЕПЕЛЬНЫЕ ЗЕМЛИ','ЛЕДЯНАЯ ПУСТОШЬ'];ctx.restore();
 }
-function loop(now){if(!running)return;let dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop)}
+function loop(now){if(!running)return;let dt=Math.min(.033,(now-last)/1000||0);last=now;try{update(dt);draw()}catch(err){console.error('SOULSLAYER render error:',err);const m=$('message');if(m)m.textContent='ОШИБКА ОТРИСОВКИ: '+(err&&err.message?err.message:'unknown');}requestAnimationFrame(loop)}
 addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(!running)return;if(e.code==='Space')dash();if(e.code==='KeyQ')skill()});
 addEventListener('keyup',e=>keys[e.code]=false);
 canvas.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});canvas.addEventListener('pointerdown',e=>{mouse.x=e.clientX;mouse.y=e.clientY;mouse.down=true});addEventListener('pointerup',()=>mouse.down=false);
