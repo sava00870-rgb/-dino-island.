@@ -51,78 +51,15 @@ for(let e of [...enemies]){let x=player.x-e.x,y=player.y-e.y,d=Math.hypot(x,y)||
 if(boss){boss.cd-=dt;boss.flash=Math.max(0,boss.flash-dt);let x=player.x-boss.x,y=player.y-boss.y,d=Math.hypot(x,y)||1;boss.phase=boss.hp<boss.maxHp*.5?2:1;boss.x+=x/d*(boss.phase===2?95:62)*dt;boss.y+=y/d*(boss.phase===2?95:62)*dt;if(boss.cd<=0){boss.cd=boss.phase===2?1.5:2.4;for(let i=0;i<(boss.phase===2?12:8);i++){let a=i*Math.PI*2/(boss.phase===2?12:8);enemies.push({x:boss.x+Math.cos(a)*60,y:boss.y+Math.sin(a)*60,r:8,hp:18,maxHp:18,speed:105,damage:7,elite:false,brute:false,cd:0,phase:0,flash:0})}burst(boss.x,boss.y,'#c34455',18)}if(d<boss.r+player.r+8)hurt(22*dt)}
 for(let o of [...orbs]){let x=player.x-o.x,y=player.y-o.y,d=Math.hypot(x,y);if(d<player.magnet){o.x+=x/Math.max(d,1)*330*dt;o.y+=y/Math.max(d,1)*330*dt}if(d<player.r+o.r+5){player.xp+=o.value;orbs=orbs.filter(v=>v!==o);checkLevel()}}
 for(let p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.12,dt);p.vy*=Math.pow(.12,dt);p.life-=dt}particles=particles.filter(p=>p.life>0);for(let t of texts){t.y-=25*dt;t.life-=dt}texts=texts.filter(t=>t.life>0);shake=Math.max(0,shake-dt*20);updateHud()}
-function draw(){
-ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-const biome=Math.floor(elapsed/90)%4;
-const palettes=[['#101522','#171e2e','#252d40','#7d9bb5'],['#17121f','#21172b','#38243d','#b47bd1'],['#21151b','#2d1b25','#48232a','#e47b55'],['#101e25','#142a31','#203d43','#73cbd0']];
-const pal=palettes[biome],ox=W/2-player.x,oy=H/2-player.y;
-ctx.save();if(shake)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
-ctx.fillStyle=pal[0];ctx.fillRect(0,0,W,H);
-const tile=64;
-for(let x=Math.floor((player.x-W/2)/tile)*tile;x<player.x+W/2+tile;x+=tile)for(let y=Math.floor((player.y-H/2)/tile)*tile;y<player.y+H/2+tile;y+=tile){
-let sx=x+ox,sy=y+oy,seed=(Math.abs(Math.floor(x/64)*73856093)^Math.abs(Math.floor(y/64)*19349663))>>>0;
-ctx.fillStyle=((Math.floor(x/tile)+Math.floor(y/tile))&1)?pal[1]:pal[0];ctx.fillRect(sx,sy,tile,tile);
-ctx.strokeStyle=pal[2]+'55';ctx.lineWidth=1;ctx.strokeRect(sx,sy,tile,tile);
-ctx.fillStyle=pal[2];for(let k=0;k<3;k++){let q=(seed+k*9973)>>>0;ctx.globalAlpha=.22;ctx.fillRect(sx+(q%57)+3,sy+((q>>>7)%57)+3,2+(q%3),2)}ctx.globalAlpha=1;
-}
-for(let o of obstacles){
-let x=o.x+ox,y=o.y+oy;if(x<-70||y<-70||x>W+70||y>H+70)continue;
-ctx.fillStyle='#05070dcc';ctx.beginPath();ctx.ellipse(x,y+o.r*.7,o.r*1.35,o.r*.65,0,0,Math.PI*2);ctx.fill();
-if(o.type>.72){
-ctx.fillStyle=pal[2];ctx.beginPath();ctx.moveTo(x-o.r*.7,y+o.r*.5);ctx.lineTo(x-o.r*.42,y-o.r*.8);ctx.lineTo(x+o.r*.05,y-o.r*1.15);ctx.lineTo(x+o.r*.65,y-o.r*.25);ctx.lineTo(x+o.r*.8,y+o.r*.5);ctx.closePath();ctx.fill();
-ctx.fillStyle=pal[3]+'99';ctx.fillRect(x-2,y-o.r*.55,3,o.r*.9);
-}else if(o.type>.42){
-ctx.fillStyle='#252c3b';ctx.fillRect(x-o.r*.58,y-o.r*.65,o.r*1.16,o.r*1.2);ctx.fillStyle='#586174';ctx.fillRect(x-o.r*.48,y-o.r*.65,o.r*.96,4);ctx.fillStyle='#111827';ctx.fillRect(x-3,y-o.r*.35,6,o.r*.7);
-}else{
-ctx.fillStyle='#263a35';ctx.beginPath();ctx.arc(x,y-o.r*.25,o.r*.9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3b5948';ctx.beginPath();ctx.arc(x-o.r*.28,y-o.r*.48,o.r*.48,0,Math.PI*2);ctx.arc(x+o.r*.3,y-o.r*.42,o.r*.42,0,Math.PI*2);ctx.fill();ctx.fillStyle='#594637';ctx.fillRect(x-3,y,6,o.r*.65);
-}
-}
-for(let o of orbs){let x=o.x+ox,y=o.y+oy,pulse=1+Math.sin(elapsed*7+o.x)*.18;ctx.save();ctx.translate(x,y);ctx.rotate(elapsed*1.8);ctx.shadowColor='#ad83ff';ctx.shadowBlur=18;ctx.fillStyle='#c9a7ff';ctx.fillRect(-4*pulse,-4*pulse,8*pulse,8*pulse);ctx.fillStyle='#fff0d6';ctx.fillRect(-1,-1,2,2);ctx.restore()}
-function enemySprite(e){
-let x=e.x+ox,y=e.y+oy,r=e.r,bob=Math.sin(elapsed*5+e.phase)*2;
-if(x<-60||y<-60||x>W+60||y>H+60)return;
-ctx.fillStyle='#05060bcc';ctx.beginPath();ctx.ellipse(x,y+r*.72,r*1.35,r*.55,0,0,Math.PI*2);ctx.fill();
-ctx.save();ctx.translate(x,y+bob);
-if(e.kind==='hound'){
-ctx.fillStyle=e.flash?'#fff':e.elite?'#d85c91':'#987052';ctx.beginPath();ctx.ellipse(0,1,r*1.05,r*.62,0,0,Math.PI*2);ctx.fill();
-ctx.beginPath();ctx.moveTo(-r*.55,-r*.25);ctx.lineTo(-r*.7,-r*1.25);ctx.lineTo(-r*.08,-r*.55);ctx.fill();ctx.beginPath();ctx.moveTo(r*.45,-r*.3);ctx.lineTo(r*.8,-r*1.1);ctx.lineTo(r*.12,-r*.5);ctx.fill();
-ctx.fillStyle='#ffcf91';ctx.fillRect(-r*.65,-2,3,3);ctx.fillRect(r*.35,-2,3,3);ctx.fillStyle='#33222a';ctx.fillRect(-r*.15,r*.3,r*.3,3);
-}else if(e.kind==='wraith'){
-ctx.globalAlpha=.82;ctx.fillStyle=e.flash?'#fff':e.elite?'#e98bbd':'#8270b8';ctx.beginPath();ctx.moveTo(-r,-r*.2);ctx.quadraticCurveTo(-r*1.1,-r*1.3,0,-r*1.2);ctx.quadraticCurveTo(r*1.1,-r*1.3,r,-r*.2);ctx.lineTo(r*.75,r*.8);ctx.lineTo(r*.25,r*.45);ctx.lineTo(0,r*.95);ctx.lineTo(-r*.35,r*.45);ctx.lineTo(-r*.8,r*.8);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
-ctx.fillStyle='#eee1ff';ctx.fillRect(-r*.45,-r*.35,4,3);ctx.fillRect(r*.12,-r*.35,4,3);
-}else if(e.brute){
-ctx.fillStyle=e.flash?'#fff':e.elite?'#c65d77':'#80634c';ctx.fillRect(-r*.8,-r*.7,r*1.6,r*1.55);ctx.fillStyle='#aa8b68';ctx.fillRect(-r*1.15,-r*.55,r*.42,r*.95);ctx.fillRect(r*.73,-r*.55,r*.42,r*.95);ctx.fillStyle='#f0bd83';ctx.fillRect(-r*.48,-r*.35,5,4);ctx.fillRect(r*.15,-r*.35,5,4);ctx.fillStyle='#30222a';ctx.fillRect(-r*.28,r*.35,r*.56,4);
-}else{
-ctx.fillStyle=e.flash?'#fff':e.elite?'#ce6683':'#9d5351';ctx.fillRect(-r*.62,-r*.7,r*1.24,r*1.45);ctx.fillStyle='#d5b39a';ctx.fillRect(-r*.82,-r*.85,r*1.64,r*.38);ctx.fillStyle='#f7d49b';ctx.fillRect(-r*.4,-r*.15,4,4);ctx.fillRect(r*.12,-r*.15,4,4);ctx.fillStyle='#34232c';ctx.fillRect(-r*.25,r*.4,r*.5,3);
-}
-ctx.restore();
-if(e.elite){ctx.strokeStyle='#ff9fc9';ctx.lineWidth=2;ctx.shadowColor='#fa6fae';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(x,y,r+7+Math.sin(elapsed*7)*2,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
-ctx.fillStyle='#090a10';ctx.fillRect(x-r,y-r-10,r*2,3);ctx.fillStyle=e.elite?'#ff8cb8':'#e36b65';ctx.fillRect(x-r,y-r-10,r*2*Math.max(0,e.hp/e.maxHp),3);
-}
-for(let e of enemies)enemySprite(e);
-if(boss){
-let x=boss.x+ox,y=boss.y+oy,pulse=Math.sin(elapsed*4)*3;
-ctx.fillStyle='#05040bcc';ctx.beginPath();ctx.ellipse(x,y+38,54,22,0,0,Math.PI*2);ctx.fill();
-ctx.save();ctx.translate(x,y+pulse);ctx.shadowColor='#d64e69';ctx.shadowBlur=24;
-ctx.fillStyle=boss.flash?'#fff':'#55233d';ctx.beginPath();ctx.moveTo(-34,28);ctx.lineTo(-29,-25);ctx.lineTo(-18,-45);ctx.lineTo(-9,-27);ctx.lineTo(0,-53);ctx.lineTo(12,-27);ctx.lineTo(27,-43);ctx.lineTo(34,28);ctx.closePath();ctx.fill();
-ctx.fillStyle='#9c4056';ctx.fillRect(-28,-12,56,35);ctx.fillStyle='#ffcf87';ctx.fillRect(-17,-8,8,6);ctx.fillRect(9,-8,8,6);ctx.fillStyle='#241629';ctx.fillRect(-12,10,24,7);
-ctx.strokeStyle='#e87583';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-27,-27);ctx.lineTo(-43,-47);ctx.moveTo(27,-27);ctx.lineTo(43,-47);ctx.stroke();ctx.restore();
-}
-if(target){let tx=target.x+ox,ty=target.y+oy;ctx.strokeStyle=target===boss?'#ff8b79':'#f1d08a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,target.r+10+Math.sin(elapsed*8)*3,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#ffe0a6';ctx.font='800 9px Manrope';ctx.textAlign='center';ctx.fillText('ЦЕЛЬ',tx,ty-target.r-18)}
-let px=W/2,py=H/2,walk=Math.sin(elapsed*13)*2;
-ctx.save();ctx.translate(px,py);ctx.rotate(player.face);
-ctx.fillStyle='#05060dcc';ctx.beginPath();ctx.ellipse(0,13,19,10,0,0,Math.PI*2);ctx.fill();
-ctx.fillStyle=player.invuln>0?'#fff':'#6d3548';ctx.fillRect(-10,-10+walk,20,19);
-ctx.fillStyle='#c9b8a2';ctx.fillRect(-8,-17+walk,16,11);ctx.fillStyle='#e4c49e';ctx.fillRect(-6,-19+walk,12,5);
-ctx.fillStyle='#9b4657';ctx.fillRect(-11,-9+walk,5,13);ctx.fillRect(6,-9+walk,5,13);
-ctx.fillStyle='#e8d9c2';ctx.fillRect(-7,7+walk,5,8);ctx.fillRect(3,7+walk,5,8);
-ctx.fillStyle='#f3c67d';ctx.fillRect(1,-13+walk,3,3);
-ctx.fillStyle='#b9c9d8';ctx.fillRect(8,-5+walk,27,4);ctx.fillStyle='#f4e7c8';ctx.fillRect(31,-8+walk,6,10);ctx.fillStyle='#72516b';ctx.fillRect(5,-7+walk,7,8);
-ctx.restore();
-if(player.attackCd>player.attackRate-.12){ctx.save();ctx.translate(px,py);ctx.rotate(player.face);ctx.strokeStyle='#fff0c8';ctx.shadowColor='#e9b879';ctx.shadowBlur=16;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,58,-.8,.8);ctx.stroke();ctx.restore()}
-for(let p of particles){ctx.globalAlpha=Math.max(0,p.life/.7);ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=8;ctx.fillRect(p.x+ox,p.y+oy,p.size,p.size)}ctx.shadowBlur=0;ctx.globalAlpha=1;
-for(let t of texts){ctx.globalAlpha=Math.min(1,t.life*2);ctx.fillStyle=t.color;ctx.font='800 13px Manrope';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(t.t,t.x+ox,t.y+oy)}ctx.shadowBlur=0;ctx.globalAlpha=1;
-const biomeNames=['ЗАБЫТЫЕ РУИНЫ','ЛЕС ШЁПОТОВ','ПЕПЕЛЬНЫЕ ЗЕМЛИ','ЛЕДЯНАЯ ПУСТОШЬ'];ctx.restore();
+function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);let ox=W/2-player.x,oy=H/2-player.y;ctx.save();if(shake)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);ctx.fillStyle='#111522';ctx.fillRect(0,0,W,H);
+let tile=64;for(let x=Math.floor((player.x-W/2)/tile)*tile;x<player.x+W/2+tile;x+=tile)for(let y=Math.floor((player.y-H/2)/tile)*tile;y<player.y+H/2+tile;y+=tile){let sx=x+ox,sy=y+oy;ctx.fillStyle=((Math.floor(x/tile)+Math.floor(y/tile))&1)?'#151a29':'#171c2b';ctx.fillRect(sx,sy,tile,tile);ctx.strokeStyle='#202638';ctx.lineWidth=1;ctx.strokeRect(sx,sy,tile,tile);if((Math.abs(x*13+y*7)%7)<2){ctx.fillStyle='#22283a';ctx.fillRect(sx+18,sy+22,2,2);ctx.fillRect(sx+45,sy+49,2,2)}}
+for(let o of obstacles){let x=o.x+ox,y=o.y+oy;if(x<-50||y<-50||x>W+50||y>H+50)continue;ctx.fillStyle='#090d16';ctx.beginPath();ctx.ellipse(x,y+o.r*.65,o.r*1.2,o.r*.65,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=o.type>.5?'#39404b':'#343047';ctx.fillRect(x-o.r*.65,y-o.r*.7,o.r*1.3,o.r*1.2);ctx.fillStyle='#55515b';ctx.fillRect(x-o.r*.5,y-o.r*.7,o.r,4)}
+for(let o of orbs){let x=o.x+ox,y=o.y+oy;ctx.fillStyle='#b38aff';ctx.shadowColor='#9b73ff';ctx.shadowBlur=14;ctx.fillRect(x-4,y-4,8,8);ctx.shadowBlur=0}
+for(let e of enemies){let x=e.x+ox,y=e.y+oy;ctx.fillStyle='#080a12';ctx.beginPath();ctx.ellipse(x,y+e.r*.7,e.r*1.3,e.r*.65,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=e.flash?'#fff':e.elite?'#b94b76':e.brute?'#96704f':'#a84e4d';ctx.fillRect(x-e.r*.7,y-e.r*.8,e.r*1.4,e.r*1.6);ctx.fillStyle='#e7b5a1';ctx.fillRect(x-5,y-3,3,3);ctx.fillRect(x+3,y-3,3,3);ctx.fillStyle='#090a10';ctx.fillRect(x-e.r,y-e.r-8,e.r*2,3);ctx.fillStyle='#db5b58';ctx.fillRect(x-e.r,y-e.r-8,e.r*2*Math.max(0,e.hp/e.maxHp),3);if(e.elite){ctx.strokeStyle='#f0a6d0';ctx.strokeRect(x-e.r-2,y-e.r-2,e.r*2+4,e.r*2+4)}}
+if(boss){let x=boss.x+ox,y=boss.y+oy;ctx.fillStyle='#08070e';ctx.beginPath();ctx.ellipse(x,y+32,48,20,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=boss.flash?'#fff':'#792e49';ctx.fillRect(x-30,y-32,60,65);ctx.fillStyle='#b85c5b';ctx.fillRect(x-39,y-18,78,30);ctx.fillStyle='#ffd28c';ctx.fillRect(x-18,y-7,8,6);ctx.fillRect(x+10,y-7,8,6);ctx.fillStyle='#4b1c34';ctx.fillRect(x-27,y-47,15,22);ctx.fillRect(x+12,y-47,15,22)}
+let px=W/2,py=H/2;ctx.save();ctx.translate(px,py);ctx.rotate(player.face);ctx.fillStyle='#090a12';ctx.beginPath();ctx.ellipse(0,12,17,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=player.invuln>0?'#fff':'#d5c6ad';ctx.fillRect(-10,-11,20,23);ctx.fillStyle='#8c4750';ctx.fillRect(-8,-16,16,8);ctx.fillStyle='#d9a77d';ctx.fillRect(3,-7,4,4);ctx.fillStyle='#b7c1d2';ctx.fillRect(8,-5,25,4);ctx.fillStyle='#e9e3d8';ctx.fillRect(29,-7,5,8);ctx.restore();
+for(let p of particles){ctx.globalAlpha=Math.max(0,p.life/.7);ctx.fillStyle=p.color;ctx.fillRect(p.x+ox,p.y+oy,p.size,p.size)}ctx.globalAlpha=1;for(let t of texts){ctx.globalAlpha=Math.min(1,t.life*2);ctx.fillStyle=t.color;ctx.font='800 13px Manrope';ctx.textAlign='center';ctx.fillText(t.t,t.x+ox,t.y+oy)}ctx.globalAlpha=1;
+if(player.attackCd>player.attackRate-.09){ctx.strokeStyle='#e8d0a6aa';ctx.lineWidth=3;ctx.beginPath();ctx.arc(px,py,55,player.face-.75,player.face+.75);ctx.stroke()}ctx.restore();
 }
 function loop(now){if(!running)return;let dt=Math.min(.033,(now-last)/1000||0);last=now;try{update(dt);draw()}catch(err){console.error('SOULSLAYER render error:',err);const m=$('message');if(m)m.textContent='ОШИБКА ОТРИСОВКИ: '+(err&&err.message?err.message:'unknown');}requestAnimationFrame(loop)}
 addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(!running)return;if(e.code==='Space')dash();if(e.code==='KeyQ')skill()});
