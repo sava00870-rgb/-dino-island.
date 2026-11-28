@@ -4,3 +4,29 @@
 .quickshop{position:absolute;right:22px;top:82px;margin:0;padding:8px 12px;font-size:9px;z-index:5;background:#292333cc;border-color:#8d6a64}@media(max-width:700px){.quickshop{top:83px;right:12px;padding:7px 9px;font-size:8px}}
 
 #abilitybar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}.ability{position:relative;width:52px;height:52px;background:linear-gradient(145deg,#292638ed,#101522ed);border:1px solid #8e7180;box-shadow:0 5px 18px #0009;display:grid;place-items:center}.ability canvas{width:32px;height:32px;image-rendering:pixelated;filter:drop-shadow(0 0 5px #b58aff66)}.ability span{position:absolute;right:3px;bottom:2px;font-size:8px;color:#e8d5c4}.ability i{position:absolute;left:0;bottom:0;width:100%;height:0;background:#111b;pointer-events:none}.ability.cooling{opacity:.55}@media(max-width:700px){#abilitybar{bottom:165px;gap:5px}.ability{width:40px;height:40px}.ability canvas{width:26px;height:26px}}
+
+/* SOULSLAYER visual overhaul */
+#game{background:#101522;image-rendering:pixelated}
+.top{z-index:3;filter:drop-shadow(0 3px 12px #000b)}
+.brand{font-size:25px;text-shadow:0 0 18px #d75a4c55,0 3px 12px #000}
+.stats{padding:10px 12px;background:linear-gradient(110deg,#090c17cc,#171827aa);border:1px solid #82708055;border-left:3px solid #bd655e;box-shadow:0 8px 25px #0005}
+.bar{height:9px;border-color:#79616a;background:#171521;box-shadow:inset 0 1px 4px #000}
+.bar i{box-shadow:0 0 12px #ed765d88}
+.bar.xp i{box-shadow:0 0 12px #b58aff99}
+.rightstats span{padding:7px 9px;background:#0b0d18b8;border:1px solid #76607155}
+#bossbar{z-index:3;padding:10px 16px;background:linear-gradient(90deg,transparent,#140d18cc,transparent)}
+#bossbar .bar{height:13px;border:1px solid #e08b70;box-shadow:0 0 18px #d34b5b55}
+#message{z-index:3;padding:7px 14px;background:#0a0c16a8;border:1px solid #7d667044}
+#abilitybar{z-index:3;gap:9px;bottom:20px}
+.ability{width:56px;height:56px;border:1px solid #ad8b93;background:linear-gradient(145deg,#383044f2,#111522f5);box-shadow:0 0 0 2px #090b14,0 7px 22px #000b,inset 0 0 15px #b38aff12;transition:transform .15s,border-color .15s}
+.ability canvas{width:36px;height:36px;filter:drop-shadow(0 0 8px #d7a4ff99)}
+.ability span{padding:2px 4px;background:#080a12;color:#f6dcb9}
+.ability.cooling{opacity:.62;filter:saturate(.6)}
+button{border-radius:3px;box-shadow:0 5px 0 #391b2b,0 10px 28px #0009,inset 0 1px #ffffff22;transition:filter .15s,transform .15s}
+button:hover{filter:brightness(1.2) saturate(1.12)}
+.panel{border-color:#a17a76;background:linear-gradient(145deg,#292435f5,#0e1220f8);box-shadow:0 0 0 3px #090b1488,0 25px 100px #000}
+.titlepanel{background:radial-gradient(ellipse at 50% 0%,#63374766,transparent 58%),linear-gradient(145deg,#292435f5,#0e1220f8)}
+h1{text-shadow:0 0 25px #d75a4c55,0 5px 25px #000}
+.choice{border-radius:3px;background:linear-gradient(145deg,#342b3b,#151725);box-shadow:inset 0 1px #ffffff12,0 7px 18px #0005}
+.choice:hover{border-color:#e4a77e;background:linear-gradient(145deg,#493044,#1a1b2b)}
+@media(max-width:700px){.top{gap:7px}.stats{padding:7px}.brand{font-size:14px}.rightstats span{padding:4px 5px}.ability{width:43px;height:43px}.ability canvas{width:29px;height:29px}#abilitybar{bottom:165px}}
